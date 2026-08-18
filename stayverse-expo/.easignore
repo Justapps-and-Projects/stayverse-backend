@@ -1,0 +1,9 @@
+# Prefer repo-root .easignore; keep a copy here for app-local runs.
+**/node_modules/
+**/.expo/
+**/dist/
+**/.turbo/
+**/coverage/
+**/__tests__/
+**/*.test.ts
+**/*.test.tsx

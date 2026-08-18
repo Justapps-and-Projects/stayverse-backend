@@ -1,0 +1,76 @@
+{
+  "name": "@stayverse/ui",
+  "version": "0.0.0",
+  "private": true,
+  "main": "src/index.tsx",
+  "types": "src/index.tsx",
+  "exports": {
+    ".": "./src/index.tsx",
+    "./theme": "./src/theme/index.ts",
+    "./tailwind-preset": "./tailwind-preset.js"
+  },
+  "scripts": {
+    "lint": "eslint src --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "clean": "rm -rf dist .turbo"
+  },
+  "peerDependencies": {
+    "@expo/vector-icons": "*",
+    "@gorhom/bottom-sheet": ">=4",
+    "@react-native-community/datetimepicker": "*",
+    "@stayverse/assets": "workspace:*",
+    "lottie-react-native": "*",
+    "nativewind": ">=4",
+    "react": "*",
+    "react-native": "*",
+    "react-native-gesture-handler": "*",
+    "react-native-reanimated": "*",
+    "react-native-svg": "*",
+    "react-native-toast-message": ">=2",
+    "zustand": ">=4"
+  },
+  "peerDependenciesMeta": {
+    "nativewind": {
+      "optional": true
+    },
+    "@gorhom/bottom-sheet": {
+      "optional": true
+    },
+    "react-native-toast-message": {
+      "optional": true
+    },
+    "lottie-react-native": {
+      "optional": true
+    },
+    "react-native-svg": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@gorhom/bottom-sheet": "^5.2.14",
+    "@stayverse/assets": "workspace:*",
+    "@stayverse/config": "workspace:*",
+    "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react-native": "^14.0.1",
+    "@types/jest": "^29.5.14",
+    "@types/react": "~19.2.2",
+    "eslint": "^9.28.0",
+    "jest": "^29.7.0",
+    "jest-expo": "^57.0.2",
+    "lottie-react-native": "~7.3.8",
+    "react": "19.2.3",
+    "react-native": "0.86.0",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-reanimated": "4.5.0",
+    "react-native-svg": "15.15.4",
+    "react-native-toast-message": "^2.4.0",
+    "react-test-renderer": "^19.2.3",
+    "typescript": "~5.9.2",
+    "zustand": "^5.0.5"
+  },
+  "dependencies": {
+    "react-native-mmkv": "^4.3.2",
+    "zustand": "^5.0.5"
+  }
+}

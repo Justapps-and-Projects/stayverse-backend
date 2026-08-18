@@ -1,0 +1,26 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@stayverse/core": [
+        "../../packages/core/src/index.ts"
+      ],
+      "@stayverse/ui": [
+        "../../packages/ui/src/index.tsx"
+      ],
+      "@stayverse/assets": [
+        "../../packages/assets/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "nativewind-env.d.ts"
+  ]
+}

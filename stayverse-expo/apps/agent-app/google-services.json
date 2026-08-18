@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "576811326554",
+    "project_id": "stayverse-82fdd",
+    "storage_bucket": "stayverse-82fdd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:576811326554:android:710a3609c253854ad9cc63",
+        "android_client_info": {
+          "package_name": "com.stayverse.agent.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAl7XQo4agnhVVR2w19wDgb5nqYKXCiETE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:576811326554:android:a3a9f570d1dc463fd9cc63",
+        "android_client_info": {
+          "package_name": "com.stayverse.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAl7XQo4agnhVVR2w19wDgb5nqYKXCiETE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,108 @@
+{
+  "name": "@stayverse/core",
+  "version": "0.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./storage": "./src/storage/mmkv.ts"
+  },
+  "scripts": {
+    "lint": "eslint src --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.80.7",
+    "axios": "^1.10.0",
+    "expo-secure-store": "~57.0.1",
+    "react-native-mmkv": "^4.3.2",
+    "socket.io-client": "^4.8.3",
+    "stream-chat": "^9.50.1",
+    "zod": "^3.25.67",
+    "zustand": "^5.0.5"
+  },
+  "peerDependencies": {
+    "@react-native-firebase/analytics": "*",
+    "@react-native-firebase/app": "*",
+    "@react-native-firebase/messaging": "*",
+    "@sentry/react-native": "*",
+    "@stayverse/assets": "workspace:*",
+    "expo-camera": "*",
+    "expo-constants": "*",
+    "expo-image-manipulator": "*",
+    "expo-image-picker": "*",
+    "expo-location": "*",
+    "expo-router": "*",
+    "react": "*",
+    "react-native": "*",
+    "react-native-maps": "*",
+    "react-native-webview": "*"
+  },
+  "peerDependenciesMeta": {
+    "@react-native-firebase/analytics": {
+      "optional": true
+    },
+    "@react-native-firebase/app": {
+      "optional": true
+    },
+    "@react-native-firebase/messaging": {
+      "optional": true
+    },
+    "@sentry/react-native": {
+      "optional": true
+    },
+    "expo-camera": {
+      "optional": true
+    },
+    "expo-image-manipulator": {
+      "optional": true
+    },
+    "expo-image-picker": {
+      "optional": true
+    },
+    "expo-location": {
+      "optional": true
+    },
+    "expo-router": {
+      "optional": true
+    },
+    "react-native-maps": {
+      "optional": true
+    },
+    "react-native-webview": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@react-native-firebase/analytics": "^23.8.6",
+    "@react-native-firebase/app": "^23.8.6",
+    "@react-native-firebase/messaging": "^23.8.6",
+    "@sentry/react-native": "~7.11.0",
+    "@stayverse/assets": "workspace:*",
+    "@stayverse/config": "workspace:*",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "~19.2.2",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^9.28.0",
+    "expo-camera": "~57.0.2",
+    "expo-constants": "~57.0.5",
+    "expo-image-manipulator": "~57.0.4",
+    "expo-image-picker": "~57.0.4",
+    "expo-location": "~57.0.4",
+    "expo-router": "~57.0.6",
+    "jsdom": "^26.1.0",
+    "msw": "^2.15.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.0",
+    "react-native-maps": "1.27.2",
+    "react-native-webview": "13.16.1",
+    "typescript": "~5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

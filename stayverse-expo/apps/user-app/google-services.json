@@ -1,0 +1,118 @@
+{
+  "project_info": {
+    "project_number": "576811326554",
+    "project_id": "stayverse-82fdd",
+    "storage_bucket": "stayverse-82fdd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:576811326554:android:710a3609c253854ad9cc63",
+        "android_client_info": {
+          "package_name": "com.stayverse.agent.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "576811326554-t11hkabu4d5oog1vf8ce8renubj219qn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAl7XQo4agnhVVR2w19wDgb5nqYKXCiETE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "576811326554-35i5lue66cvf3resib27b8ll15ejfg4o.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "576811326554-1b6ki3t03p7sdcl56gjbtgrcqips7sl7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.stayverse.app"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:576811326554:android:a3a9f570d1dc463fd9cc63",
+        "android_client_info": {
+          "package_name": "com.stayverse.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "576811326554-t11hkabu4d5oog1vf8ce8renubj219qn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAl7XQo4agnhVVR2w19wDgb5nqYKXCiETE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "576811326554-35i5lue66cvf3resib27b8ll15ejfg4o.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "576811326554-1b6ki3t03p7sdcl56gjbtgrcqips7sl7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.stayverse.app"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:576811326554:android:eec66cb5987c1586d9cc63",
+        "android_client_info": {
+          "package_name": "com.stayversepro.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "576811326554-t11hkabu4d5oog1vf8ce8renubj219qn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAl7XQo4agnhVVR2w19wDgb5nqYKXCiETE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "576811326554-35i5lue66cvf3resib27b8ll15ejfg4o.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "576811326554-1b6ki3t03p7sdcl56gjbtgrcqips7sl7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.stayverse.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

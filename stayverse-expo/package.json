@@ -1,0 +1,23 @@
+{
+  "name": "stayverse",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "dev:user": "pnpm --filter @stayverse/user-app start",
+    "dev:agent": "pnpm --filter @stayverse/agent-app start",
+    "build:user": "pnpm --filter @stayverse/user-app exec eas build --profile production",
+    "build:agent": "pnpm --filter @stayverse/agent-app exec eas build --profile production",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "pnpm --filter @stayverse/core test && pnpm --filter @stayverse/ui test && pnpm --filter @stayverse/user-app test && pnpm --filter @stayverse/agent-app test",
+    "test:coverage": "pnpm --filter @stayverse/core test:coverage",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "prettier": "^3.5.3",
+    "turbo": "^2.5.4",
+    "typescript": "~5.9.2"
+  }
+}
