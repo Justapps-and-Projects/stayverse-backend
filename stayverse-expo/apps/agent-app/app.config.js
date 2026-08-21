@@ -59,7 +59,7 @@ module.exports = ({ config }) => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.stayverse.agent.app",
-    buildNumber: "2",
+    buildNumber: "3",
     googleServicesFile: "./GoogleService-Info.plist",
     config: {
       googleMapsApiKey:
