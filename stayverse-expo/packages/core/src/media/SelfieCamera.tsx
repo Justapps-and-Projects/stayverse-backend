@@ -20,7 +20,7 @@ type Props = {
 
 /**
  * Flutter KYC selfie camera — front lens, portrait, ellipse preview, ~2s process.
- * Zoom approximates Flutter `setZoomLevel(2)` (expo-camera zoom is 0–1).
+ * Front camera stays at the lens default so the face is not cropped.
  */
 export function SelfieCamera({
   onCapture,
@@ -93,7 +93,7 @@ export function SelfieCamera({
           style={styles.camera}
           facing="front"
           mode="picture"
-          zoom={0.25}
+          zoom={0}
         />
         <View pointerEvents="none" style={styles.ellipseOverlay}>
           <View style={styles.ellipse} />

@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Image, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { router, type Href } from "expo-router";
 import { shortletPng } from "@stayverse/assets";
 import type { ListingSummary } from "@stayverse/core";
-import { formatNaira } from "@stayverse/core";
+import { formatNaira, useToggleFavouriteMutation } from "@stayverse/core";
 import { AppIcon, Text, spacing, useTheme } from "@stayverse/ui";
 
 type Props = {
@@ -29,6 +31,8 @@ function ListingImage({
 /** Flutter apartment / ride card (home feed, no favourite). */
 export function ServiceListingCard({ item, stretch, style }: Props) {
   const { colors } = useTheme();
+  const toggleFavourite = useToggleFavouriteMutation();
+  const [liked, setLiked] = useState(false);
 
   const openDetails = () => {
     router.push(`/listing/${item.kind}/${item.id}` as Href);
@@ -46,7 +50,25 @@ export function ServiceListingCard({ item, stretch, style }: Props) {
       accessibilityRole="button"
       accessibilityLabel={item.title}
     >
-      <ListingImage uri={item.imageUrl} stretch={stretch} />
+      <View>
+        <ListingImage uri={item.imageUrl} stretch={stretch} />
+        <Pressable
+          style={styles.heart}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={liked ? "Remove from favourites" : "Save to favourites"}
+          onPress={() => {
+            setLiked((value) => !value);
+            toggleFavourite.mutate({ kind: item.kind, id: item.id });
+          }}
+        >
+          <Ionicons
+            name={liked ? "heart" : "heart-outline"}
+            size={12}
+            color={liked ? "#E11D48" : "#8F8F8F"}
+          />
+        </Pressable>
+      </View>
       <View style={styles.body}>
         <Text numberOfLines={1} style={[styles.title, { color: colors.foreground }]}>
           {item.title}
@@ -157,8 +179,8 @@ export function TopChefListCard({ item }: { item: ListingSummary }) {
 
 const styles = StyleSheet.create({
   card: {
-    width: 180,
-    borderRadius: 8,
+    width: 156,
+    borderRadius: 5,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
@@ -170,20 +192,32 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   image: {
-    width: 180,
-    height: 140,
+    width: 156,
+    height: 108,
+    borderRadius: 5,
   },
   imageStretch: {
     width: "100%",
     height: 140,
+  },
+  heart: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
   },
   body: {
     padding: spacing.sm,
     gap: 2,
   },
   title: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 12,
+    fontFamily: "NeueMontreal-Medium",
   },
   locationRow: {
     flexDirection: "row",

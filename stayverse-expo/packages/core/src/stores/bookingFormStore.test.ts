@@ -33,4 +33,15 @@ describe("useBookingFormStore", () => {
     useBookingFormStore.getState().resetRide();
     expect(useBookingFormStore.getState().ride.pickupAddress).toBe("");
   });
+
+  it("stores apartment stay coordinates", () => {
+    useBookingFormStore.getState().setApartmentDraft({
+      listingId: "a1",
+      latitude: 6.45,
+      longitude: 3.39,
+    });
+    const apt = useBookingFormStore.getState().apartment;
+    expect(apt.latitude).toBe(6.45);
+    expect(apt.longitude).toBe(3.39);
+  });
 });

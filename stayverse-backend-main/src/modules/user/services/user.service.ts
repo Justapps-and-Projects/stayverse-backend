@@ -1,11 +1,13 @@
 import { BadRequestException, Inject, Injectable, InternalServerErrorException, Logger, UnauthorizedException } from '@nestjs/common';
+import { randomInt, randomBytes } from 'crypto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { User, UserDocument } from '../schemas/user.schema';
 import { Booking, BookingDocument } from '../../booking/schemas/booking.schema';
-import { CreateUserDto, ForgotPasswordResetDto, UpdateDeviceTokenAndNotificationDto, UpdateProfilePicture, UpdateUserDto, VerifyNinSelfieDto } from '../dto/user.dto';
+import { CreateUserDto, ForgotPasswordResetDto, SocialLoginDto, UpdateDeviceTokenAndNotificationDto, UpdateProfilePicture, UpdateUserDto, VerifyNinSelfieDto } from '../dto/user.dto';
+import { verifySocialIdentity } from 'src/common/providers/social-token.util';
 import { JwtPayloadDto } from '../../../common/dtos/jwt-payload.dto';
 import { OtpService } from 'src/common/providers/otp.service';
 import { BookingStatus, EmailType, KycStatus, OTP_MINUTES, Roles } from 'src/common/constants/enum';
@@ -90,7 +92,8 @@ export class UserService {
     return {
       message: 'User created successfully',
       chatToken,
-      otp: response.otp,
+      otp: response.emailDelivered ? undefined : response.otp,
+      emailDelivered: response.emailDelivered ?? false,
     };
   }
 
@@ -143,6 +146,56 @@ export class UserService {
     const token = this.jwtService.sign(jwtPayload);
     const chatToken = this.streamClient.createToken(user._id.toString());
 
+    const userObj = user.toObject();
+    delete userObj.passwordHash;
+    delete userObj.otp;
+
+    return { access_token: token, isEmailVerified: true, user: userObj, chatToken };
+  }
+
+  async loginWithSocial(dto: SocialLoginDto) {
+    const identity = await verifySocialIdentity(dto.provider, dto.idToken);
+    let user = await this.userModel
+      .findOne({ email: identity.email })
+      .select('+passwordHash +balance +otp +pinExpires +notificationsEnabled');
+
+    if (user && ![Roles.ADMIN, Roles.USER].includes(user.role)) {
+      throw new BadRequestException('This email belongs to an agent account. Open the agent app.');
+    }
+
+    if (!user) {
+      const passwordHash = await bcrypt.hash(randomBytes(24).toString('hex'), 10);
+      const created = await this.userModel.create({
+        firstname: (dto.firstname || identity.givenName || 'Stayverse').trim(),
+        lastname: (dto.lastname || identity.familyName || 'User').trim(),
+        email: identity.email,
+        phoneNumber: `080${randomInt(10000000, 99999999)}`,
+        passwordHash,
+        isEmailVerified: true,
+        role: Roles.USER,
+      });
+      user = await this.userModel
+        .findById(created._id)
+        .select('+passwordHash +balance +otp +pinExpires +notificationsEnabled');
+    }
+
+    if (!user) throw new BadRequestException('User not found!');
+
+    if (!user.isEmailVerified) {
+      user.isEmailVerified = true;
+      user.otp = null;
+      user.pinExpires = null;
+      await user.save();
+    }
+
+    const jwtPayload: JwtPayloadDto = {
+      sub: String(user._id),
+      email: user.email,
+      role: user.role,
+      serviceType: null,
+    };
+    const token = this.jwtService.sign(jwtPayload);
+    const chatToken = this.streamClient.createToken(user._id.toString());
     const userObj = user.toObject();
     delete userObj.passwordHash;
     delete userObj.otp;
@@ -275,7 +328,10 @@ export class UserService {
     user.otp = response.otp;
     user.pinExpires = dayjs().tz(TIMEZONE).add(OTP_MINUTES, 'minute').toDate();
     await user.save();
-    return true;
+    return {
+      emailDelivered: response.emailDelivered ?? false,
+      otp: response.emailDelivered ? undefined : response.otp,
+    };
   }
 
   async updatePassword(userId: string, oldPassword: string, newPassword: string) {
@@ -343,15 +399,21 @@ export class UserService {
   async updateNotificationPreference(userId: string, dto: UpdateDeviceTokenAndNotificationDto) {
     const { enable, deviceToken } = dto;
 
-    if (enable && !deviceToken) {
-      throw new BadRequestException('Device token is required when enabling notifications');
+    const update: {
+      $set: { notificationsEnabled: boolean; deviceToken?: string };
+      $unset?: { deviceToken: string };
+    } = {
+      $set: { notificationsEnabled: enable },
+    };
+
+    if (enable && deviceToken) {
+      update.$set.deviceToken = deviceToken;
+    }
+    if (!enable) {
+      update.$unset = { deviceToken: '' };
     }
 
-    const updateData = enable
-      ? { notificationsEnabled: true, deviceToken }
-      : { notificationsEnabled: false, $unset: { deviceToken: '' } };
-
-    const user = await this.userModel.findByIdAndUpdate(userId, { $set: updateData }, { new: true }).select('email deviceToken notificationsEnabled');
+    const user = await this.userModel.findByIdAndUpdate(userId, update, { new: true }).select('email deviceToken notificationsEnabled');
 
     if (!user) throw new BadRequestException('User not found');
 

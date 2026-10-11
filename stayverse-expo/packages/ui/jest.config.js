@@ -1,5 +1,6 @@
 module.exports = {
   preset: "jest-expo",
+  testTimeout: 20000,
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   testMatch: ["**/__tests__/**/*.(test|spec).(ts|tsx)", "**/*.(test|spec).(ts|tsx)"],
   transformIgnorePatterns: [

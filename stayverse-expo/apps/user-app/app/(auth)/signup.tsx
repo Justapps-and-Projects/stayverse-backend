@@ -9,7 +9,8 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { Link, Stack, router, type Href } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Stack, router, type Href } from "expo-router";
 import {
   isApiError,
   normalizeNigerianPhone,
@@ -188,40 +189,34 @@ export default function SignupScreen() {
               ]}
               keyboardShouldPersistTaps="handled"
             >
-              <Text style={[styles.title, { color: colors.text }]}>
-                Create Account
-              </Text>
+              <Text style={[styles.title, { color: colors.text }]}>Sign up</Text>
               <Text style={[styles.subtitle, { color: colors.text }]}>
                 Please fill in this form to create an account
               </Text>
 
               <View style={{ height: Math.round(height * 0.05) }} />
 
-              <View style={styles.row}>
-                <TextField
-                  containerStyle={styles.half}
-                  placeholder="First Name"
-                  value={firstName}
-                  onChangeText={setFirstName}
-                  onBlur={() => setTouched((t) => ({ ...t, firstName: true }))}
-                  autoCapitalize="words"
-                  textContentType="givenName"
-                  returnKeyType="next"
-                  error={errors.firstName ?? undefined}
-                />
-                <View style={{ width: 15 }} />
-                <TextField
-                  containerStyle={styles.half}
-                  placeholder="Last Name"
-                  value={lastName}
-                  onChangeText={setLastName}
-                  onBlur={() => setTouched((t) => ({ ...t, lastName: true }))}
-                  autoCapitalize="words"
-                  textContentType="familyName"
-                  returnKeyType="next"
-                  error={errors.lastName ?? undefined}
-                />
-              </View>
+              <TextField
+                placeholder="First Name"
+                value={firstName}
+                onChangeText={setFirstName}
+                onBlur={() => setTouched((t) => ({ ...t, firstName: true }))}
+                autoCapitalize="words"
+                textContentType="givenName"
+                returnKeyType="next"
+                error={errors.firstName ?? undefined}
+              />
+              <View style={{ height: 15 }} />
+              <TextField
+                placeholder="Last Name"
+                value={lastName}
+                onChangeText={setLastName}
+                onBlur={() => setTouched((t) => ({ ...t, lastName: true }))}
+                autoCapitalize="words"
+                textContentType="familyName"
+                returnKeyType="next"
+                error={errors.lastName ?? undefined}
+              />
 
               <View style={{ height: 15 }} />
               <TextField
@@ -260,10 +255,14 @@ export default function SignupScreen() {
                   <Pressable
                     onPress={() => setShowPassword((v) => !v)}
                     hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={showPassword ? "Hide password" : "Show password"}
                   >
-                    <Text variant="bodySmall" style={{ color: colors.muted }}>
-                      {showPassword ? "Hide" : "Show"}
-                    </Text>
+                    <Ionicons
+                      name={showPassword ? "eye-off-outline" : "eye-outline"}
+                      size={22}
+                      color={colors.muted}
+                    />
                   </Pressable>
                 }
               />
@@ -282,10 +281,16 @@ export default function SignupScreen() {
                   <Pressable
                     onPress={() => setShowConfirm((v) => !v)}
                     hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      showConfirm ? "Hide confirm password" : "Show confirm password"
+                    }
                   >
-                    <Text variant="bodySmall" style={{ color: colors.muted }}>
-                      {showConfirm ? "Hide" : "Show"}
-                    </Text>
+                    <Ionicons
+                      name={showConfirm ? "eye-off-outline" : "eye-outline"}
+                      size={22}
+                      color={colors.muted}
+                    />
                   </Pressable>
                 }
               />
@@ -293,7 +298,7 @@ export default function SignupScreen() {
               <View style={{ height: 40 }} />
 
               <Button
-                label="Create Account"
+                label="Sign Up"
                 variant="primary"
                 loading={busy}
                 onPress={submit}
@@ -307,7 +312,7 @@ export default function SignupScreen() {
                   style={[styles.footerLink, { color: colors.primary }]}
                   onPress={() => router.push("/(auth)/login" as Href)}
                 >
-                  Login
+                  login
                 </Text>
               </Text>
 
@@ -319,16 +324,16 @@ export default function SignupScreen() {
                   style={[styles.legalLink, { color: colors.primary }]}
                   onPress={showTerms}
                 >
-                  Terms &{"\n"}Conditions
+                  Terms & Conditions
                 </Text>
                 {" and "}
                 <Text
                   style={[styles.legalLink, { color: colors.primary }]}
                   onPress={showPrivacy}
                 >
-                  Privacy Policy
+                  Privacy Policy.
                 </Text>
-                Your data will be securely{"\n"}encrypted with US
+                {" Your data will be securely encrypted with Us"}
               </Text>
 
               <View style={{ height: 30 }} />
@@ -357,30 +362,23 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontFamily: "NeueMontreal-Regular",
   },
-  row: { flexDirection: "row", alignItems: "flex-start" },
-  half: { flex: 1 },
   footer: {
     textAlign: "center",
     fontSize: 12,
-    fontWeight: "500",
     fontFamily: "NeueMontreal-Medium",
   },
   footerLink: {
     fontSize: 12,
-    fontWeight: "500",
-    textDecorationLine: "underline",
     fontFamily: "NeueMontreal-Medium",
   },
   legal: {
     textAlign: "center",
-    fontSize: 12,
-    fontWeight: "500",
-    fontFamily: "NeueMontreal-Medium",
-    lineHeight: 18,
+    fontSize: 11,
+    fontFamily: "NeueMontreal-Regular",
+    lineHeight: 16,
   },
   legalLink: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 11,
     fontFamily: "NeueMontreal-Medium",
   },
 });

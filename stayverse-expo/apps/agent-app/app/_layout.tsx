@@ -7,7 +7,7 @@ import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
 import { colorScheme } from "nativewind";
 import { neueMontrealFonts } from "@stayverse/assets";
 import {
@@ -18,9 +18,10 @@ import {
   StayverseQueryProvider,
   wrapWithSentry,
 } from "@stayverse/core";
-import { ThemeProvider, ToastHost, StayverseLoader } from "@stayverse/ui";
+import { ThemeProvider, ToastHost, BrandSplash } from "@stayverse/ui";
 import { FirebaseBootstrap } from "../src/FirebaseBootstrap";
 import { StreamChatProvider } from "../src/StreamChatProvider";
+import { LiveLocationBootstrap } from "../src/LiveLocationBootstrap";
 
 initStayverseSentry();
 
@@ -37,17 +38,14 @@ function RootLayout() {
 
   // Never block the app forever if a font asset fails to load in release builds.
   if (!loaded && !fontError && !fontTimedOut) {
-    return (
-      <View style={styles.boot}>
-        <StayverseLoader color="#2C2C2C" size={64} />
-      </View>
-    );
+    return <BrandSplash />;
   }
 
   return (
     <GestureHandlerRootView style={styles.flex}>
       <StayverseQueryProvider>
         <SocketLifecycle />
+        <LiveLocationBootstrap />
         <SentryUserBridge />
         <FirebaseBootstrap />
         <ThemeProvider onSchemeChange={(scheme) => colorScheme.set(scheme)}>
@@ -55,11 +53,20 @@ function RootLayout() {
             <BottomSheetModalProvider>
               <StatusBar style="auto" />
               <SentryNavigationBridge />
-              <Stack screenOptions={{ headerShown: false }}>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  headerBackTitle: "Back",
+                  headerBackButtonDisplayMode: "minimal",
+                }}
+              >
                 <Stack.Screen name="index" />
                 <Stack.Screen name="onboarding" />
                 <Stack.Screen name="(auth)" />
-                <Stack.Screen name="(tabs)" />
+                <Stack.Screen
+                  name="(tabs)"
+                  options={{ title: "Home", headerBackTitle: "Back" }}
+                />
                 <Stack.Screen
                   name="listings/apartments"
                   options={{ headerShown: true, title: "Apartments" }}
@@ -142,5 +149,4 @@ export default wrapWithSentry(RootLayout);
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  boot: { flex: 1, alignItems: "center", justifyContent: "center" },
 });

@@ -12,6 +12,8 @@ export const queryKeys = {
     apartments: () => ["home", "recommendations", "apartment"] as const,
     rides: () => ["home", "recommendations", "ride"] as const,
     chefs: () => ["home", "recommendations", "chef"] as const,
+    nearby: (kind: CatalogServiceType, lat?: number, lng?: number) =>
+      ["home", "nearby", kind, lat ?? null, lng ?? null] as const,
   },
   search: (filters: Record<string, unknown>) => ["search", filters] as const,
   apartment: (id: string) => ["apartment", id] as const,

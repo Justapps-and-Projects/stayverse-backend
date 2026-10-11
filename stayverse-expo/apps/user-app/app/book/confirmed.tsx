@@ -1,12 +1,58 @@
-import { StyleSheet, View } from "react-native";
+import { useMemo } from "react";
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { Stack, router, useLocalSearchParams, type Href } from "expo-router";
 import {
+  DEFAULT_MAP_LOCATION,
   formatNaira,
   useBookingFormStore,
+  useNearbyListingsQuery,
+  type ListingSummary,
 } from "@stayverse/core";
 import { Button, Text, spacing, useTheme } from "@stayverse/ui";
+import {
+  ChefListingCard,
+  ServiceListingCard,
+} from "../../src/features/discover/ListingCards";
 
-/** Flutter Booking Confirmed success screen. */
+function NearbyRow({
+  title,
+  items,
+  kind,
+}: {
+  title: string;
+  items: ListingSummary[];
+  kind: "chef" | "ride";
+}) {
+  const { colors } = useTheme();
+  if (items.length === 0) return null;
+  return (
+    <View style={styles.addonBlock}>
+      <Text style={[styles.addonTitle, { color: colors.foreground }]}>
+        {title}
+      </Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.addonList}
+      >
+        {items.map((item) =>
+          kind === "chef" ? (
+            <ChefListingCard key={item.id} item={item} />
+          ) : (
+            <ServiceListingCard key={item.id} item={item} />
+          ),
+        )}
+      </ScrollView>
+    </View>
+  );
+}
+
+/** Flutter Booking Confirmed success screen + nearby chef/car upsell. */
 export default function BookingConfirmedScreen() {
   const { colors } = useTheme();
   const { kind } = useLocalSearchParams<{ kind: string }>();
@@ -19,6 +65,26 @@ export default function BookingConfirmedScreen() {
   const title = isApartment ? apartment.title : ride.title;
   const total = isApartment ? apartment.totalPrice : ride.totalPrice;
 
+  const stayCoords = useMemo(() => {
+    if (
+      apartment.latitude != null &&
+      apartment.longitude != null &&
+      Number.isFinite(apartment.latitude) &&
+      Number.isFinite(apartment.longitude)
+    ) {
+      return { latitude: apartment.latitude, longitude: apartment.longitude };
+    }
+    return DEFAULT_MAP_LOCATION;
+  }, [apartment.latitude, apartment.longitude]);
+
+  const chefsQuery = useNearbyListingsQuery("chef", stayCoords, isApartment);
+  const ridesQuery = useNearbyListingsQuery("ride", stayCoords, isApartment);
+  const nearbyChefs = chefsQuery.data ?? [];
+  const nearbyRides = ridesQuery.data ?? [];
+  const addonsLoading =
+    isApartment && (chefsQuery.isLoading || ridesQuery.isLoading);
+  const hasAddons = nearbyChefs.length > 0 || nearbyRides.length > 0;
+
   const continueSearch = () => {
     if (isApartment) resetApartment();
     else resetRide();
@@ -27,7 +93,10 @@ export default function BookingConfirmedScreen() {
   };
 
   return (
-    <View style={[styles.wrap, { backgroundColor: colors.background }]}>
+    <ScrollView
+      style={[styles.wrap, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+    >
       <Stack.Screen options={{ title: "Booking Confirmed", headerBackVisible: false }} />
 
       <View style={[styles.hero, { backgroundColor: `${colors.primary}1A` }]}>
@@ -60,16 +129,48 @@ export default function BookingConfirmedScreen() {
         </View>
       ) : null}
 
+      {isApartment ? (
+        <View style={styles.addons}>
+          <Text style={[styles.addonHeading, { color: colors.foreground }]}>
+            Enhance your stay
+          </Text>
+          <Text muted style={styles.addonSub}>
+            Chefs and cars available near this apartment
+          </Text>
+          {addonsLoading ? (
+            <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.md }} />
+          ) : hasAddons ? (
+            <>
+              <NearbyRow
+                title="Chefs near you"
+                items={nearbyChefs}
+                kind="chef"
+              />
+              <NearbyRow
+                title="Cars near you"
+                items={nearbyRides}
+                kind="ride"
+              />
+            </>
+          ) : (
+            <Text muted style={styles.addonSub}>
+              No nearby chefs or cars are listed for this area yet.
+            </Text>
+          )}
+        </View>
+      ) : null}
+
       <Button label="Continue Search" onPress={continueSearch} />
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    flex: 1,
+  wrap: { flex: 1 },
+  content: {
     padding: spacing.md,
     gap: spacing.md,
+    paddingBottom: spacing.xl,
   },
   hero: {
     height: 120,
@@ -96,5 +197,27 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: spacing.md,
     gap: spacing.xs,
+  },
+  addons: {
+    gap: spacing.xs,
+  },
+  addonHeading: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  addonSub: {
+    fontSize: 13,
+  },
+  addonBlock: {
+    marginTop: spacing.sm,
+    gap: spacing.sm,
+  },
+  addonTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  addonList: {
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
   },
 });

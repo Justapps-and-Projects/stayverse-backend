@@ -31,6 +31,7 @@ import {
   DeleteAccountDto,
   ForgotPasswordResetDto,
   LoginUserDto,
+  SocialLoginDto,
   UpdateKycStatusDto,
   UpdateDeviceTokenAndNotificationDto,
   UpdatePasswordDto,
@@ -109,6 +110,15 @@ export class UserController {
   })
   async login(@Body() loginDto: LoginUserDto) {
     return await this.usersService.login(loginDto.email, loginDto.password, loginDto.expectedRole);
+  }
+
+  @Public()
+  @Post('auth/social')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Sign in with Google or Apple' })
+  @ApiBody({ type: SocialLoginDto })
+  async socialLogin(@Body() dto: SocialLoginDto) {
+    return await this.usersService.loginWithSocial(dto);
   }
 
   @Role(Roles.USER)
@@ -242,8 +252,14 @@ export class UserController {
       throw new BadRequestException('Invalid email format.');
     }
 
-    await this.usersService.resendVerificationPin(email);
-    return { message: 'Verification pin sent successfully.' };
+    const result = await this.usersService.resendVerificationPin(email);
+    return {
+      message: result.emailDelivered
+        ? 'Verification pin sent successfully.'
+        : 'Verification code generated. Check your email or use the code provided in the app.',
+      emailDelivered: result.emailDelivered,
+      otp: result.otp,
+    };
   }
 
   @Get('all')

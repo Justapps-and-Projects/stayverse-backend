@@ -2,7 +2,7 @@ import { getApiClient } from "../client";
 import { getEnv } from "../../config/env";
 
 export type RegisterDeviceTokenInput = {
-  deviceToken: string;
+  deviceToken?: string | null;
   enable: boolean;
 };
 
@@ -18,7 +18,7 @@ export async function registerDeviceToken({
 }: RegisterDeviceTokenInput): Promise<void> {
   const prefix = getEnv().APP_TARGET === "agent" ? "/agents" : "/users";
   await getApiClient().patch(`${prefix}/notifications/device-token`, {
-    deviceToken,
     enable,
+    ...(deviceToken ? { deviceToken } : {}),
   });
 }

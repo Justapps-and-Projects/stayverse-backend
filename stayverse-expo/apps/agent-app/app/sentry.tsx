@@ -1,5 +1,5 @@
 import { StyleSheet, View } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, Redirect, type Href } from "expo-router";
 import {
   addStayverseBreadcrumb,
   captureStayverseException,
@@ -14,6 +14,7 @@ export default function SentryToolsScreen() {
   const { colors } = useTheme();
   const env = getEnv();
   const ready = isSentryAvailable();
+  if (!__DEV__) return <Redirect href={"/(tabs)" as Href} />;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>

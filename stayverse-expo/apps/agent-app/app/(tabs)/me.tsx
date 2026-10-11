@@ -12,9 +12,12 @@ import {
 } from "react-native";
 import { Link, router, type Href } from "expo-router";
 import {
+  enableBiometricUnlock,
+  isBiometricUnlockEnabled,
   pickProfileFromCamera,
   pickProfileFromGallery,
   pushDeviceToken,
+  setBiometricUnlockEnabled,
   useAuthStore,
   useProfileQuery,
   useUploadProfilePictureMutation,
@@ -33,6 +36,8 @@ import {
 const SUPPORT_CHAT_URL =
   "https://tawk.to/chat/68d1171589caa6192613d1f4/1j5oc4b5e";
 const ABOUT_URL = "https://www.stayversepro.com/";
+const PRIVACY_URL = "https://www.stayversepro.com/privacy";
+const TERMS_URL = "https://www.stayversepro.com/terms";
 
 function firstListingRow(serviceType: ServiceType | null): {
   title: string;
@@ -42,7 +47,7 @@ function firstListingRow(serviceType: ServiceType | null): {
     case "ride":
       return { title: "Listed Cars", href: "/listings/rides" as Href };
     case "chef":
-      return { title: "View Profile" };
+      return { title: "Chef Profile", href: "/listings/create-chef" as Href };
     case "apartment":
     default:
       return { title: "Listed Apartment", href: "/listings/apartments" as Href };
@@ -74,6 +79,7 @@ export default function MeTab() {
   const notificationsEnabled = user?.notificationsEnabled ?? false;
   const [notifBusy, setNotifBusy] = useState(false);
   const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
+  const [faceIdOn, setFaceIdOn] = useState(isBiometricUnlockEnabled);
 
   const confirmLogout = useCallback(() => {
     Alert.alert("Log Out 🚨", "Are you sure you want logout?", [
@@ -111,19 +117,24 @@ export default function MeTab() {
       const previous = user.notificationsEnabled ?? false;
       setUser({ ...user, notificationsEnabled: enable });
       try {
-        const token = await pushDeviceToken({ enable });
+        const token = await pushDeviceToken({ enable, strict: true });
         if (!token) {
           setUser({ ...user, notificationsEnabled: previous });
           showToast({
             type: "error",
-            title: "Could not update notifications",
+            title: enable
+              ? "Allow notifications in Settings, then try again."
+              : "Could not update notifications",
           });
         } else {
           void profileQuery.refetch();
         }
-      } catch {
+      } catch (e) {
         setUser({ ...user, notificationsEnabled: previous });
-        showToast({ type: "error", title: "Please Try Again" });
+        showToast({
+          type: "error",
+          title: e instanceof Error ? e.message : "Please Try Again",
+        });
       } finally {
         setNotifBusy(false);
       }
@@ -223,6 +234,39 @@ export default function MeTab() {
             thumbColor={notificationsEnabled ? colors.primary : colors.card}
           />
         </View>
+        <View style={styles.row}>
+          <Text style={styles.rowTitle}>Finger Print/Face ID</Text>
+          <Switch
+            value={faceIdOn}
+            onValueChange={(value) => {
+              if (!value) {
+                setFaceIdOn(false);
+                setBiometricUnlockEnabled(false);
+                return;
+              }
+              void enableBiometricUnlock().then((message) => {
+                if (message) {
+                  setFaceIdOn(false);
+                  showToast({ type: "error", title: message });
+                  return;
+                }
+                setFaceIdOn(true);
+              });
+            }}
+            trackColor={{
+              false: colors.border,
+              true: `${colors.primary}4D`,
+            }}
+            thumbColor={faceIdOn ? colors.primary : colors.card}
+          />
+        </View>
+        <Pressable
+          style={styles.row}
+          onPress={() => router.push("/profile/edit" as Href)}
+        >
+          <Text style={styles.rowTitle}>Edit Profile</Text>
+          <Text style={{ color: colors.muted }}>›</Text>
+        </Pressable>
         <Pressable
           style={styles.row}
           onPress={() => router.push("/(tabs)/inbox" as Href)}
@@ -249,6 +293,20 @@ export default function MeTab() {
           onPress={() => void Linking.openURL(ABOUT_URL)}
         >
           <Text style={styles.rowTitle}>About</Text>
+          <Text style={{ color: colors.muted }}>›</Text>
+        </Pressable>
+        <Pressable
+          style={styles.row}
+          onPress={() => void Linking.openURL(PRIVACY_URL)}
+        >
+          <Text style={styles.rowTitle}>Privacy Policy</Text>
+          <Text style={{ color: colors.muted }}>›</Text>
+        </Pressable>
+        <Pressable
+          style={styles.row}
+          onPress={() => void Linking.openURL(TERMS_URL)}
+        >
+          <Text style={styles.rowTitle}>Terms of Service</Text>
           <Text style={{ color: colors.muted }}>›</Text>
         </Pressable>
         <Pressable

@@ -19,7 +19,26 @@ export type StayverseWebViewProps = {
   onClose?: (result?: boolean) => void;
 };
 
-const CLOSE_PREFIX = "https://stayverse.com";
+function isPaystackReturn(url: string): boolean {
+  if (!url) return false;
+  if (
+    url.startsWith("https://stayverse.com") ||
+    url.startsWith("https://www.stayverse.com") ||
+    url.startsWith("stayverse://") ||
+    url.startsWith("stayverse-agent://")
+  ) {
+    return true;
+  }
+  try {
+    const host = new URL(url).hostname;
+    if (host.endsWith("paystack.com") || host.endsWith("paystack.co")) {
+      return false;
+    }
+  } catch {
+    return false;
+  }
+  return /[?&](trxref|reference)=/i.test(url);
+}
 
 export const TAWK_SUPPORT_URL =
   "https://tawk.to/chat/68d1171589caa6192613d1f4/1j5oc4b5e";
@@ -38,7 +57,11 @@ export function StayverseWebView({
 
   const handleNav = useCallback(
     (nav: WebViewNavigation) => {
-      if (!nav.url?.startsWith(CLOSE_PREFIX)) return true;
+      const shouldClose =
+        mode === "paystack"
+          ? isPaystackReturn(nav.url ?? "")
+          : (nav.url ?? "").startsWith("https://stayverse.com");
+      if (!shouldClose) return true;
       if (closed.current) return false;
       closed.current = true;
       if (mode === "paystack") {
@@ -62,7 +85,6 @@ export function StayverseWebView({
         onLoadEnd={() => setLoading(false)}
         onError={() => setLoading(false)}
         onShouldStartLoadWithRequest={(req) => {
-          if (!req.url.startsWith(CLOSE_PREFIX)) return true;
           return handleNav({ url: req.url } as WebViewNavigation);
         }}
         onNavigationStateChange={handleNav}

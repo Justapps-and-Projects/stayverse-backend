@@ -35,7 +35,12 @@
     "expo-camera": "*",
     "expo-constants": "*",
     "expo-image-manipulator": "*",
+    "expo-apple-authentication": "*",
+    "expo-auth-session": "*",
+    "expo-crypto": "*",
     "expo-image-picker": "*",
+    "expo-local-authentication": "*",
+    "expo-web-browser": "*",
     "expo-location": "*",
     "expo-router": "*",
     "react": "*",
@@ -56,7 +61,22 @@
     "@sentry/react-native": {
       "optional": true
     },
+    "expo-apple-authentication": {
+      "optional": true
+    },
+    "expo-auth-session": {
+      "optional": true
+    },
     "expo-camera": {
+      "optional": true
+    },
+    "expo-crypto": {
+      "optional": true
+    },
+    "expo-local-authentication": {
+      "optional": true
+    },
+    "expo-web-browser": {
       "optional": true
     },
     "expo-image-manipulator": {

@@ -16,6 +16,7 @@ import {
   type ListingSummary,
 } from "@stayverse/core";
 import {
+  AppIcon,
   LoadingSpinner,
   LottieEmptyState,
   Text,
@@ -32,20 +33,29 @@ const TABS: { key: ListingOwnerStatus; label: string }[] = [
 function ListingRow({ item }: { item: ListingSummary }) {
   const { colors } = useTheme();
   return (
-    <View style={[styles.row, { backgroundColor: colors.card }]}>
+    <View style={styles.row}>
       {item.imageUrl ? (
         <Image source={{ uri: item.imageUrl }} style={styles.thumb} />
       ) : (
         <Image source={shortletPng} style={styles.thumb} />
       )}
       <View style={styles.rowBody}>
-        <Text numberOfLines={1} style={{ fontWeight: "600", color: colors.foreground }}>
+        <Text
+          numberOfLines={1}
+          style={[styles.title, { color: colors.foreground }]}
+        >
           {item.title}
         </Text>
-        <Text numberOfLines={1} muted>
-          {item.subtitle}
-        </Text>
-        <Text style={{ fontWeight: "600" }}>
+        <View style={styles.locationRow}>
+          <AppIcon name="location" size={12} color={colors.muted} />
+          <Text
+            numberOfLines={1}
+            style={[styles.location, { color: colors.muted }]}
+          >
+            {item.subtitle}
+          </Text>
+        </View>
+        <Text style={[styles.price, { color: colors.foreground }]}>
           {formatNaira(item.price ?? 0)}
           {item.priceSuffix ?? ""}
         </Text>
@@ -69,7 +79,7 @@ export function ListedListingsScreen({ kind }: Props) {
 
   return (
     <View style={[styles.wrap, { backgroundColor: colors.background }]}>
-      <View style={[styles.tabs, { backgroundColor: colors.secondary }]}>
+      <View style={styles.tabs}>
         {TABS.map((tab) => {
           const selected = tab.key === status;
           return (
@@ -78,15 +88,17 @@ export function ListedListingsScreen({ kind }: Props) {
               onPress={() => setStatus(tab.key)}
               style={[
                 styles.tab,
-                selected && { backgroundColor: colors.primary },
+                {
+                  backgroundColor: selected ? colors.primary : "transparent",
+                  borderColor: colors.primary,
+                },
               ]}
             >
               <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: "500",
-                  color: selected ? colors.foreground : colors.muted,
-                }}
+                style={[
+                  styles.tabLabel,
+                  { color: selected ? colors.foreground : colors.muted },
+                ]}
               >
                 {tab.label}
               </Text>
@@ -108,7 +120,7 @@ export function ListedListingsScreen({ kind }: Props) {
             styles.list,
             items.length === 0 && styles.fill,
           ]}
-          ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
+          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
           refreshControl={
             <RefreshControl
               refreshing={query.isRefetching}
@@ -140,15 +152,22 @@ const styles = StyleSheet.create({
   wrap: { flex: 1 },
   tabs: {
     flexDirection: "row",
-    margin: spacing.md,
-    borderRadius: 25,
-    padding: 2,
+    gap: 8,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
   tab: {
     flex: 1,
+    height: 36,
     alignItems: "center",
-    paddingVertical: 10,
-    borderRadius: 25,
+    justifyContent: "center",
+    borderRadius: 52,
+    borderWidth: 1,
+  },
+  tabLabel: {
+    fontSize: 12,
+    fontFamily: "NeueMontreal-Medium",
   },
   list: {
     paddingHorizontal: spacing.md,
@@ -163,16 +182,39 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: "row",
-    borderRadius: 10,
+    height: 82,
+    borderRadius: 6,
     overflow: "hidden",
-    gap: spacing.sm,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  thumb: { width: 90, height: 80 },
+  thumb: { width: 119, height: 82 },
   rowBody: {
     flex: 1,
-    paddingVertical: spacing.sm,
-    paddingRight: spacing.sm,
+    paddingHorizontal: 10,
     gap: 2,
     justifyContent: "center",
+  },
+  title: {
+    fontSize: 13,
+    fontFamily: "NeueMontreal-Medium",
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  location: {
+    flex: 1,
+    fontSize: 11,
+    fontFamily: "NeueMontreal-Regular",
+  },
+  price: {
+    fontSize: 12,
+    fontFamily: "NeueMontreal-Medium",
   },
 });

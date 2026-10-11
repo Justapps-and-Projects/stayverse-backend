@@ -68,8 +68,8 @@ async function getFcmToken(): Promise<string | null> {
   try {
     if (Platform.OS === "ios") {
       let apns = await messaging().getAPNSToken();
-      if (!apns) {
-        await new Promise((r) => setTimeout(r, 3000));
+      for (let attempt = 0; !apns && attempt < 3; attempt += 1) {
+        await new Promise((r) => setTimeout(r, 2000));
         apns = await messaging().getAPNSToken();
       }
       if (!apns) {
@@ -127,10 +127,9 @@ export async function requestPushPermission(): Promise<boolean> {
  */
 export async function pushDeviceToken(options?: {
   enable?: boolean;
+  /** Profile toggles surface the API error instead of swallowing it. */
+  strict?: boolean;
 }): Promise<string | null> {
-  const token = await getFcmToken();
-  if (!token) return null;
-
   const user = useAuthStore.getState().user as
     | { notificationsEnabled?: boolean | null }
     | null
@@ -138,15 +137,25 @@ export async function pushDeviceToken(options?: {
   const enable =
     options?.enable ?? user?.notificationsEnabled ?? true;
 
+  if (enable) {
+    await requestPushPermission();
+  }
+
+  const freshToken = await getFcmToken();
+  const token = freshToken || mmkv.getString(StorageKeys.deviceToken);
+  if (!token && enable) return null;
+
   try {
     await registerDeviceToken({ deviceToken: token, enable });
-    mmkv.setString(StorageKeys.deviceToken, token);
-    // Flutter StreamClientService.pushToken — same FCM token, provider Stayverse
-    await addStreamPushDevice(token);
+    if (token) {
+      mmkv.setString(StorageKeys.deviceToken, token);
+      await addStreamPushDevice(token);
+    }
     log("registered device token");
-    return token;
+    return token || "updated";
   } catch (e) {
     log("registerDeviceToken failed", e);
+    if (options?.strict) throw e;
     return null;
   }
 }

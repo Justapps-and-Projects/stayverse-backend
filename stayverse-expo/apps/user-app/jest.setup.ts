@@ -42,11 +42,11 @@ jest.mock("react-native-mmkv", () => {
   const store = new Map();
   return {
     createMMKV: () => ({
-      getString: (key) => store.get(key),
-      set: (key, value) => store.set(key, String(value)),
-      remove: (key) => store.delete(key),
+      getString: (key: string) => store.get(key),
+      set: (key: string, value: unknown) => store.set(key, String(value)),
+      remove: (key: string) => store.delete(key),
       clearAll: () => store.clear(),
-      contains: (key) => store.has(key),
+      contains: (key: string) => store.has(key),
       getAllKeys: () => [...store.keys()],
     }),
   };

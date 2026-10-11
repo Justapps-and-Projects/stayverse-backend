@@ -19,11 +19,10 @@ import {
   useFundWalletMutation,
   useProfileQuery,
   useTransactionsQuery,
-  useVerifyPaymentMutation,
   useWalletQuery,
+  verifyPaymentWithRetry,
   useWalletUiStore,
   validateMoney,
-  type TransactionStatus,
   type TransactionSummary,
 } from "@stayverse/core";
 import {
@@ -38,30 +37,13 @@ import {
   useTheme,
 } from "@stayverse/ui";
 
-function statusLabel(status: TransactionStatus): string {
-  if (status === "successful") return "Successful";
-  if (status === "pending") return "Pending";
-  if (status === "failed") return "Failed";
-  if (status === "refunded") return "Refunded";
-  if (status === "reversed") return "Reversed";
-  return "Unknown";
-}
-
-function statusColor(status: TransactionStatus): string {
-  if (status === "successful") return "#22C55E";
-  if (status === "pending") return "#F59E0B";
-  return "#EF4444";
-}
-
 function formatTxnDate(iso: string | null): string {
   if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-US", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const weekday = date.toLocaleDateString("en-US", { weekday: "short" });
+  const month = date.toLocaleDateString("en-US", { month: "short" });
+  return `${weekday}. ${date.getDate()} ${month} ${date.getFullYear()}`;
 }
 
 function txnTitle(item: TransactionSummary): string {
@@ -111,37 +93,25 @@ function WalletActionButton({
 
 function TransactionRow({ item }: { item: TransactionSummary }) {
   const { colors } = useTheme();
-  const badge = statusColor(item.status);
   const sign = item.type === "credit" ? "+" : "-";
 
   return (
-    <View style={[styles.txnRow, { borderBottomColor: colors.border }]}>
-      <View
-        style={[styles.txnIcon, { backgroundColor: `${colors.primary}33` }]}
-      >
+    <View style={styles.txnRow}>
+      <View style={[styles.txnIcon, { backgroundColor: `${colors.primary}33` }]}>
         <AppIcon
           name={item.type === "credit" ? "bank_recieve" : "bank_send"}
-          size={20}
+          size={18}
           color={colors.primary}
         />
       </View>
       <View style={styles.txnBody}>
         <Text
-          numberOfLines={2}
+          numberOfLines={1}
           style={[styles.txnTitle, { color: colors.foreground }]}
         >
           {txnTitle(item)}
         </Text>
-        <View style={styles.txnMeta}>
-          <Text style={[styles.txnDate, { color: colors.muted }]}>
-            {formatTxnDate(item.createdAt)}
-          </Text>
-          <View style={[styles.badge, { backgroundColor: `${badge}1A` }]}>
-            <Text style={[styles.badgeText, { color: badge }]}>
-              {statusLabel(item.status)}
-            </Text>
-          </View>
-        </View>
+        <Text style={styles.txnDate}>{formatTxnDate(item.createdAt)}</Text>
       </View>
       <Text style={[styles.txnAmount, { color: colors.foreground }]}>
         {sign}
@@ -162,7 +132,6 @@ export function WalletScreen() {
   const txQuery = useTransactionsQuery();
   const profileQuery = useProfileQuery();
   const fundMutation = useFundWalletMutation();
-  const verifyMutation = useVerifyPaymentMutation();
 
   const [addFundsOpen, setAddFundsOpen] = useState(false);
   const [amountInput, setAmountInput] = useState("");
@@ -198,28 +167,28 @@ export function WalletScreen() {
   }, [profileQuery, txQuery, walletQuery]);
 
   const onPaystackClose = useCallback(
-    async (success?: boolean) => {
+    async (_success?: boolean) => {
+      const reference = pendingReference;
       setPaystackUrl(null);
-      if (!success || !pendingReference) {
-        setPendingReference(null);
-        return;
-      }
+      if (!reference) return;
       setBusyMessage("Verifying payment...");
       try {
-        await verifyMutation.mutateAsync(pendingReference);
+        await verifyPaymentWithRetry(reference);
         setPendingReference(null);
         await refreshAfterFund();
         showToast({ type: "success", title: "Wallet funded successfully" });
-      } catch (e) {
+      } catch {
+        setPendingReference(null);
+        await refreshAfterFund();
         showToast({
           type: "error",
-          title: e instanceof Error ? e.message : "Please try payment again",
+          title: "Payment was not completed",
         });
       } finally {
         setBusyMessage(null);
       }
     },
-    [pendingReference, refreshAfterFund, verifyMutation],
+    [pendingReference, refreshAfterFund],
   );
 
   const submitAddFunds = async () => {
@@ -250,9 +219,7 @@ export function WalletScreen() {
   const listHeader = (
     <View>
       <View style={[styles.balancePad, { backgroundColor: colors.background }]}>
-        <Text style={[styles.balanceLabel, { color: colors.muted }]}>
-          My balance
-        </Text>
+        <Text style={styles.balanceLabel}>My balance</Text>
         <View style={styles.balanceRow}>
           <Text style={[styles.balanceValue, { color: colors.foreground }]}>
             {showBalance ? formatNaira(balance) : "****"}
@@ -288,7 +255,7 @@ export function WalletScreen() {
           />
         </View>
       </View>
-      <View style={[styles.activitiesHeader, { backgroundColor: colors.secondary }]}>
+      <View style={styles.activitiesHeader}>
         <Text style={[styles.activitiesTitle, { color: colors.muted }]}>
           Activities
         </Text>
@@ -317,7 +284,7 @@ export function WalletScreen() {
           styles.listGrow,
           items.length === 0 && styles.fill,
         ]}
-        style={{ backgroundColor: colors.secondary }}
+        style={styles.activitiesList}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -339,7 +306,7 @@ export function WalletScreen() {
           ) : null
         }
         ListEmptyComponent={
-          <View style={[styles.centered, { backgroundColor: colors.secondary }]}>
+          <View style={styles.centered}>
             <LottieEmptyState kind="empty" title="No Transactions" size={110} />
           </View>
         }
@@ -429,53 +396,69 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontSize: 14,
+    fontFamily: "NeueMontreal-Regular",
+    color: "#9B9999",
   },
   balanceRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-end",
     gap: 12,
+    overflow: "visible",
+    paddingTop: 6,
+    paddingBottom: 4,
   },
   balanceValue: {
-    fontSize: 38,
-    fontWeight: "700",
+    fontSize: 44,
+    lineHeight: 56,
+    fontFamily: "NeueMontreal-Bold",
+    letterSpacing: -0.5,
+    paddingTop: 2,
   },
   actionsRow: {
     flexDirection: "row",
-    gap: 16,
-    marginTop: spacing.sm,
+    gap: 12,
+    marginTop: spacing.md,
   },
   actionBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    justifyContent: "center",
+    gap: 6,
+    height: 40,
+    paddingHorizontal: 16,
+    borderRadius: 38,
     borderWidth: 1,
   },
   actionLabel: {
-    fontWeight: "400",
+    fontSize: 13,
+    fontFamily: "NeueMontreal-Medium",
+  },
+  activitiesList: {
+    backgroundColor: "#F7F7F7",
   },
   activitiesHeader: {
+    backgroundColor: "#F7F7F7",
     paddingHorizontal: spacing.md,
     paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
   },
   activitiesTitle: {
     fontSize: 14,
-    fontWeight: "400",
+    fontFamily: "NeueMontreal-Regular",
   },
   txnRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: spacing.md,
+    paddingVertical: 14,
     paddingHorizontal: spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#D9D9D9",
     gap: 11,
+    backgroundColor: "#F7F7F7",
   },
   txnIcon: {
-    width: 40,
-    height: 40,
+    width: 39,
+    height: 39,
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
@@ -486,28 +469,16 @@ const styles = StyleSheet.create({
   },
   txnTitle: {
     fontSize: 13,
-    fontWeight: "500",
-  },
-  txnMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    fontFamily: "NeueMontreal-Medium",
   },
   txnDate: {
     fontSize: 11,
-  },
-  badge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  badgeText: {
-    fontSize: 9,
-    fontWeight: "500",
+    fontFamily: "NeueMontreal-Regular",
+    color: "#818181",
   },
   txnAmount: {
     fontSize: 13,
-    fontWeight: "500",
+    fontFamily: "NeueMontreal-Medium",
   },
   centered: {
     flex: 1,

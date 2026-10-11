@@ -3,7 +3,7 @@ import { ApiBody, ApiResponse, ApiTags, ApiOperation, ApiBearerAuth, ApiParam, A
 import { AuthGuard, Public } from '../../../common/guards/auth.guard';
 import { AgentService } from '../services/agent.service';
 import { CreateAgentDto, LoginAgentDto, ForgotPasswordResetDto } from '../dto/agent.dto';
-import { UpdateDeviceTokenAndNotificationDto, UpdatePasswordDto, UpdateProfilePicture, UpdateUserDto, VerifyNinSelfieDto, DeleteAccountDto } from 'src/modules/user/dto/user.dto';
+import { UpdateDeviceTokenAndNotificationDto, UpdatePasswordDto, UpdateProfilePicture, UpdateUserDto, VerifyNinSelfieDto, DeleteAccountDto, SocialLoginDto } from 'src/modules/user/dto/user.dto';
 import { VerifyEmailTokenDto } from '../../../common/dtos/verify-email-token.dto';
 import { ResendVerificationEmailDto } from '../../../common/dtos/resend-verification-email.dto';
 import { Role, RolesGuard } from 'src/common/guards/roles.guard';
@@ -62,6 +62,15 @@ export class AgentController {
     }
 
     @Public()
+    @Post('auth/social')
+    @HttpCode(200)
+    @ApiOperation({ summary: 'Agent sign in with Google or Apple' })
+    @ApiBody({ type: SocialLoginDto })
+    async socialLogin(@Body() dto: SocialLoginDto) {
+        return await this.agentService.loginWithSocial(dto);
+    }
+
+    @Public()
     @Post('verify-token')
     @ApiOperation({ summary: 'Verify email token', description: 'Verifies the OTP sent to the agent\'s email address.' })
     @ApiBody({ type: VerifyEmailTokenDto })
@@ -92,8 +101,14 @@ export class AgentController {
             throw new BadRequestException('Invalid email format.');
         }
 
-        await this.agentService.resendVerificationPin(email);
-        return { message: 'Verification pin sent successfully.' };
+        const result = await this.agentService.resendVerificationPin(email);
+        return {
+            message: result.emailDelivered
+                ? 'Verification pin sent successfully.'
+                : 'Verification code generated. Check your email or use the code provided in the app.',
+            emailDelivered: result.emailDelivered,
+            otp: result.otp,
+        };
     }
     @Role(Roles.AGENT)
     @ApiBearerAuth()

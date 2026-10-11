@@ -149,16 +149,16 @@ export default function SignupAsScreen() {
               </View>
             </View>
 
-            <View style={styles.cluster}>
+            <View style={[styles.cluster, { height: baseWidth * 0.52 }]}>
               <Bubble
                 source={ellipse13Png}
-                size={baseWidth * 0.25}
-                style={{ position: "absolute", left: -baseWidth * 0.1 }}
+                size={baseWidth * 0.22}
+                style={{ position: "absolute", left: 0 }}
               />
               <Bubble
                 source={ellipse12Png}
-                size={baseWidth * 0.25}
-                style={{ position: "absolute", right: -baseWidth * 0.1 }}
+                size={baseWidth * 0.22}
+                style={{ position: "absolute", right: 0 }}
               />
               <Bubble source={ellipse11Png} size={baseWidth * 0.46} />
             </View>
@@ -169,27 +169,22 @@ export default function SignupAsScreen() {
               </View>
             </View>
 
-            <View style={{ height: height * 0.13 }} />
-
-            {ROLES.map((role) => (
-              <Pressable
-                key={role.type}
-                accessibilityRole="button"
-                onPress={() => pick(role.type)}
-                style={({ pressed }) => [
-                  styles.roleBtn,
-                  {
-                    backgroundColor: role.bg,
-                    marginHorizontal: width * 0.06,
-                    opacity: pressed ? 0.85 : 1,
-                  },
-                ]}
-              >
-                <Text style={[styles.roleLabel, { color: role.text }]}>
-                  {role.label}
-                </Text>
-              </Pressable>
-            ))}
+            <View style={styles.roleCard}>
+              {ROLES.map((role) => (
+                <Pressable
+                  key={role.type}
+                  accessibilityRole="button"
+                  onPress={() => pick(role.type)}
+                  style={({ pressed }) => [{ opacity: pressed ? 0.88 : 1 }]}
+                >
+                  <View style={[styles.roleBtn, { backgroundColor: role.bg }]}>
+                    <Text style={[styles.roleLabel, { color: role.text }]}>
+                      {role.label}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
 
             <View style={{ height: height * 0.05 }} />
           </Animated.View>
@@ -217,18 +212,22 @@ const styles = StyleSheet.create({
   cluster: {
     alignItems: "center",
     justifyContent: "center",
-    height: undefined,
-    minHeight: 120,
+  },
+  roleCard: {
+    marginTop: 28,
+    marginHorizontal: 24,
+    gap: 12,
   },
   roleBtn: {
-    paddingVertical: 16,
-    borderRadius: 12,
+    minHeight: 54,
+    borderRadius: 27,
     alignItems: "center",
-    marginBottom: 10,
+    justifyContent: "center",
+    paddingHorizontal: 18,
   },
   roleLabel: {
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: 16,
     fontFamily: "NeueMontreal-Medium",
+    textAlign: "center",
   },
 });

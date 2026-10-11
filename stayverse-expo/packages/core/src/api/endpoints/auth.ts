@@ -135,6 +135,23 @@ export async function login(body: LoginRequest): Promise<LoginResult> {
   return parseLoginData(envelope.data);
 }
 
+export type SocialLoginRequest = {
+  provider: "google" | "apple";
+  idToken: string;
+  firstname?: string;
+  lastname?: string;
+};
+
+/** POST /users|agents/auth/social — same session payload as email login. */
+export async function loginWithSocial(
+  body: SocialLoginRequest,
+): Promise<LoginResult> {
+  const prefix = authPrefix();
+  const res = await getApiClient().post(`/${prefix}/auth/social`, body);
+  const envelope = assertSuccess(parseServerResponse(res.data));
+  return parseLoginData(envelope.data);
+}
+
 export type RegisterResult = {
   otp: string | null;
   emailDelivered: boolean;

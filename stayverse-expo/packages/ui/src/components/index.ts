@@ -9,6 +9,8 @@ export * from "./Modal";
 export * from "./Toast";
 export * from "./Loading";
 export * from "./StayverseMark";
+export * from "./BrandSplash";
+export * from "./SocialSignInButtons";
 export * from "./StayverseLoader";
 export * from "./EmptyState";
 export * from "./LottieEmptyState";

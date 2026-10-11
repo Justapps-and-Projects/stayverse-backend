@@ -15,11 +15,23 @@ import {
   forceDevLogin,
   getEnv,
   isApiError,
+  isSocialSignInCancelled,
+  promptAppleIdToken,
+  promptGoogleIdToken,
   useLoginMutation,
+  useSocialLoginMutation,
   validateEmail,
   validatePassword,
 } from "@stayverse/core";
-import { Button, Text, TextField, showToast, spacing, useTheme } from "@stayverse/ui";
+import {
+  Button,
+  SocialSignInButtons,
+  Text,
+  TextField,
+  showToast,
+  spacing,
+  useTheme,
+} from "@stayverse/ui";
 
 /**
  * Flutter agent `LoginPage` — "Sign In", dark CTA, signup → SignupAs.
@@ -29,6 +41,7 @@ export default function LoginScreen() {
   const { colors } = useTheme();
   const { height } = useWindowDimensions();
   const loginMutation = useLoginMutation();
+  const socialLogin = useSocialLoginMutation();
   const isDev = getEnv().APP_ENV === "development" && __DEV__;
 
   const [email, setEmail] = useState("");
@@ -83,6 +96,38 @@ export default function LoginScreen() {
       },
     );
   }, [email, password, loginMutation]);
+
+  const signInWith = useCallback(
+    async (provider: "google" | "apple") => {
+      if (socialLogin.isPending || loginMutation.isPending) return;
+      try {
+        const credential =
+          provider === "google"
+            ? await promptGoogleIdToken()
+            : await promptAppleIdToken();
+        await socialLogin.mutateAsync({
+          provider,
+          idToken: credential.idToken,
+          firstname: credential.firstname,
+          lastname: credential.lastname,
+        });
+        router.replace("/(tabs)" as Href);
+      } catch (err) {
+        if (isSocialSignInCancelled(err)) return;
+        showToast({
+          type: "error",
+          title: isApiError(err)
+            ? err.status === 404
+              ? "Google and Apple sign-in need a server update. Try again after the API is deployed."
+              : err.message
+            : err instanceof Error
+              ? err.message
+              : "Sign-in failed. Please try again.",
+        });
+      }
+    },
+    [loginMutation.isPending, socialLogin],
+  );
 
   return (
     <>
@@ -155,13 +200,13 @@ export default function LoginScreen() {
           <View style={{ height: Math.round(height * 0.08) }} />
 
           <Button
-            label="Sign In"
+            label="Login"
             variant="dark"
             loading={loginMutation.isPending}
             onPress={submit}
           />
 
-          <View style={{ height: 40 }} />
+          <View style={{ height: 30 }} />
 
           <View style={styles.orRow}>
             <View style={[styles.line, { backgroundColor: colors.border }]} />
@@ -169,7 +214,14 @@ export default function LoginScreen() {
             <View style={[styles.line, { backgroundColor: colors.border }]} />
           </View>
 
-          <View style={{ height: 35 }} />
+          <View style={{ height: 25 }} />
+
+          <SocialSignInButtons
+            onGooglePress={() => void signInWith("google")}
+            onApplePress={() => void signInWith("apple")}
+          />
+
+          <View style={{ height: 28 }} />
 
           <Text style={[styles.footer, { color: colors.text }]}>
             Don&apos;t have an account?{" "}
@@ -218,19 +270,17 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     marginTop: 8,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
     fontFamily: "NeueMontreal-Regular",
   },
   link: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "NeueMontreal-Medium",
-    textDecorationLine: "underline",
   },
   linkInline: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "NeueMontreal-Medium",
-    textDecorationLine: "underline",
   },
   orRow: {
     flexDirection: "row",
@@ -246,7 +296,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     textAlign: "center",
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "NeueMontreal-Medium",
   },
 });

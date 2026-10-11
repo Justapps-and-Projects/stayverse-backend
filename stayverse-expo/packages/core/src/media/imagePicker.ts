@@ -29,7 +29,7 @@ export async function pickProfileFromCamera(): Promise<PickedImage | null> {
     exif: false,
   });
   if (result.canceled || !result.assets[0]) return null;
-  return mapAsset(result.assets[0]);
+  return prepareImageForUpload(result.assets[0].uri);
 }
 
 /**
@@ -45,7 +45,7 @@ export async function pickProfileFromGallery(): Promise<PickedImage | null> {
     exif: false,
   });
   if (result.canceled || !result.assets[0]) return null;
-  return mapAsset(result.assets[0]);
+  return prepareImageForUpload(result.assets[0].uri);
 }
 
 /**
@@ -67,21 +67,15 @@ export async function pickListingImages(options?: {
   });
   if (result.canceled) return [];
 
-  const maxBytes = MediaConstraints.listingMaxBytes;
-  const allowed = new Set<string>(MediaConstraints.listingExtensions);
-
-  return result.assets
-    .map(mapAsset)
-    .filter((img) => {
-      const ext = (img.fileName?.split(".").pop() ?? img.uri.split(".").pop() ?? "")
-        .toLowerCase();
-      if (ext && !allowed.has(ext) && !img.mimeType?.includes("image")) {
-        return false;
-      }
-      if (img.fileSize != null && img.fileSize > maxBytes) return false;
-      return true;
-    })
-    .slice(0, MediaConstraints.listingMaxImages);
+  const prepared: PickedImage[] = [];
+  for (const asset of result.assets.slice(0, MediaConstraints.listingMaxImages)) {
+    try {
+      prepared.push(await prepareImageForUpload(asset.uri));
+    } catch {
+      // Skip files the converter cannot read.
+    }
+  }
+  return prepared;
 }
 
 /**
@@ -113,17 +107,6 @@ export async function prepareImageForUpload(uri: string): Promise<PickedImage> {
     height: out.height,
     mimeType: "image/jpeg",
     fileName: `photo_optimized_${Date.now()}.jpg`,
-  };
-}
-
-function mapAsset(asset: ImagePicker.ImagePickerAsset): PickedImage {
-  return {
-    uri: asset.uri,
-    width: asset.width,
-    height: asset.height,
-    mimeType: asset.mimeType,
-    fileName: asset.fileName,
-    fileSize: asset.fileSize,
   };
 }
 

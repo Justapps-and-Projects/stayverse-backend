@@ -13,6 +13,7 @@ import {
   useBookingFormStore,
   useListingDetailsQuery,
   useUnavailableDatesQuery,
+  PlacesAutocompleteField,
   type CatalogServiceType,
 } from "@stayverse/core";
 import {
@@ -74,6 +75,7 @@ export default function BookListingScreen() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [pickupAddress, setPickupAddress] = useState("");
+  const [pickupPlaceId, setPickupPlaceId] = useState<string | null>(null);
   const [pickupDateTime, setPickupDateTime] = useState("");
   const [totalHours, setTotalHours] = useState("1");
   const [notes, setNotes] = useState("");
@@ -98,11 +100,21 @@ export default function BookListingScreen() {
     return { hours, rideFee, cautionFee, total: rideFee + cautionFee };
   }, [listing, totalHours]);
 
-  if (!kind || kind === "chef") {
+  if (!kind) {
     return (
       <View style={[styles.wrap, { backgroundColor: colors.background }]}>
         <Stack.Screen options={{ title: "Bookings" }} />
-        <Text muted>Booking not available for this listing type</Text>
+        <Text muted>
+          Chefs are hired by chat. Open the chef profile and tap Hire this chef
+          to start a conversation.
+        </Text>
+        <Button
+          label="Back to listing"
+          onPress={() => {
+            if (id) router.replace(`/listing/chef/${id}` as Href);
+            else router.back();
+          }}
+        />
       </View>
     );
   }
@@ -138,6 +150,8 @@ export default function BookListingScreen() {
       listingId: listing.id,
       title: listing.title,
       address: listing.address,
+      latitude: listing.latitude ?? null,
+      longitude: listing.longitude ?? null,
       startDate: new Date(`${startDate}T00:00:00`).toISOString(),
       endDate: new Date(`${endDate}T00:00:00`).toISOString(),
       nights,
@@ -177,7 +191,7 @@ export default function BookListingScreen() {
       listingId: listing.id,
       title: listing.title,
       pickupAddress: pickupAddress.trim(),
-      pickupPlaceId: pickupAddress.trim(),
+      pickupPlaceId: pickupPlaceId ?? pickupAddress.trim(),
       pickupDateTime: dt.toISOString(),
       totalHours: hours,
       securityDetails: security,
@@ -254,11 +268,18 @@ export default function BookListingScreen() {
         </View>
       ) : (
         <View style={styles.form}>
-          <TextField
+          <PlacesAutocompleteField
             label="Pick-Up Location"
+            placeholder="Enter pick-up address"
             value={pickupAddress}
-            onChangeText={setPickupAddress}
-            placeholder="Enter address"
+            onChangeText={(text) => {
+              setPickupAddress(text);
+              setPickupPlaceId(null);
+            }}
+            onSelect={(place) => {
+              setPickupAddress(place.description);
+              setPickupPlaceId(place.placeId);
+            }}
           />
           <DatePickerField
             label="Pick-Up Date & Time"
@@ -325,7 +346,7 @@ export default function BookListingScreen() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, padding: spacing.lg },
+  wrap: { flex: 1, padding: spacing.lg, gap: spacing.md },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xl },
   hero: { width: "100%", height: 200, borderRadius: 12 },

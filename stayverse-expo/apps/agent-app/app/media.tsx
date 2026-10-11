@@ -7,7 +7,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, Redirect, type Href } from "expo-router";
 import {
   MediaConstraints,
   pickListingImages,
@@ -40,6 +40,8 @@ export default function MediaToolsScreen() {
     setNote(`Listing: ${imgs.length} (≤${MediaConstraints.listingMaxImages}, ≤5MB)`);
     setPicked(imgs);
   }, []);
+
+  if (!__DEV__) return <Redirect href={"/(tabs)" as Href} />;
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>

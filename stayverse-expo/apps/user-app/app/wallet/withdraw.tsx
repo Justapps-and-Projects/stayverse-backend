@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -77,38 +77,38 @@ export default function WithdrawScreen() {
     : null;
   const passwordError = touched.password ? validatePassword(password) : null;
 
-  const resolveAccount = useCallback(
-    async (number: string, bank: Bank | null) => {
-      setAccountName(null);
-      if (!isNigeriaAccountNumberValid(number)) return;
-      if (!bank) {
-        showToast({ type: "error", title: "Please Select a Bank" });
-        return;
-      }
-      try {
-        const resolved = await resolveMutation.mutateAsync({
-          accountNumber: number.trim(),
-          bankCode: bank.code,
-        });
-        setAccountName(resolved.accountName);
-      } catch (e) {
-        setAccountName(null);
-        showToast({
-          type: "error",
-          title: e instanceof Error ? e.message : "Account Name Not Found",
-        });
-      }
-    },
-    [resolveMutation],
-  );
+  const resolveMutationRef = useRef(resolveMutation);
+  resolveMutationRef.current = resolveMutation;
+  const resolvedKey = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isNigeriaAccountNumberValid(accountNumber) || !selectedBank) return;
+    if (!isNigeriaAccountNumberValid(accountNumber) || !selectedBank) {
+      resolvedKey.current = null;
+      return;
+    }
+    const key = `${selectedBank.code}:${accountNumber.trim()}`;
+    if (resolvedKey.current === key) return;
+    const bank = selectedBank;
+    const number = accountNumber.trim();
     const handle = setTimeout(() => {
-      void resolveAccount(accountNumber, selectedBank);
-    }, 350);
+      resolvedKey.current = key;
+      setAccountName(null);
+      void resolveMutationRef.current
+        .mutateAsync({ accountNumber: number, bankCode: bank.code })
+        .then((resolved) => {
+          setAccountName(resolved.accountName);
+        })
+        .catch((e: unknown) => {
+          resolvedKey.current = null;
+          setAccountName(null);
+          showToast({
+            type: "error",
+            title: e instanceof Error ? e.message : "Account Name Not Found",
+          });
+        });
+    }, 400);
     return () => clearTimeout(handle);
-  }, [accountNumber, resolveAccount, selectedBank]);
+  }, [accountNumber, selectedBank]);
 
   const onConfirm = () => {
     setTouched((t) => ({ ...t, account: true, amount: true }));

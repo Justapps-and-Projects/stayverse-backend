@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import {
   forgotPassword,
   login,
+  loginWithSocial,
   register,
   requestForgotPassword,
   sendToken,
@@ -10,6 +11,7 @@ import {
   type LoginResult,
   type RegisterRequest,
   type ResetPasswordRequest,
+  type SocialLoginRequest,
   type VerifyTokenRequest,
 } from "../api/endpoints/auth";
 import { useAuthStore } from "../stores/authStore";
@@ -25,6 +27,31 @@ export function useLoginMutation() {
         throw new ApiError({
           message: "Email not verified",
           code: "EMAIL_NOT_VERIFIED",
+          status: 200,
+          details: result,
+        });
+      }
+      loginAction({
+        user: result.user,
+        accessToken: result.accessToken,
+        chatToken: result.chatToken,
+        serviceType: result.user.serviceType,
+      });
+      return result;
+    },
+  });
+}
+
+export function useSocialLoginMutation() {
+  const loginAction = useAuthStore((s) => s.login);
+
+  return useMutation({
+    mutationFn: async (body: SocialLoginRequest): Promise<LoginResult> => {
+      const result = await loginWithSocial(body);
+      if (!result.accessToken) {
+        throw new ApiError({
+          message: "Sign-in did not return a session",
+          code: "INVALID_LOGIN_PAYLOAD",
           status: 200,
           details: result,
         });

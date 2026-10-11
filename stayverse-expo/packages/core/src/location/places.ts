@@ -66,7 +66,7 @@ export async function autocompletePlaces(
       };
     }>;
 
-    return suggestions
+    const mapped = suggestions
       .map((s): PlaceSuggestion | null => {
         const p = s.placePrediction;
         if (!p?.placeId) return null;
@@ -78,6 +78,47 @@ export async function autocompletePlaces(
         };
       })
       .filter((x): x is PlaceSuggestion => x != null);
+
+    if (mapped.length > 0) return mapped;
+    return legacyAutocomplete(input);
+  } catch {
+    return legacyAutocomplete(input);
+  }
+}
+
+/** Places API (New) is often disabled on the same key the Geocoding API uses. */
+async function legacyAutocomplete(input: string): Promise<PlaceSuggestion[]> {
+  try {
+    const { data } = await axios.get(
+      "https://maps.googleapis.com/maps/api/place/autocomplete/json",
+      {
+        params: {
+          input,
+          components: "country:ng",
+          key: apiKey(),
+        },
+        timeout: 12_000,
+      },
+    );
+    const predictions = (data?.predictions ?? []) as Array<{
+      place_id?: string;
+      description?: string;
+      structured_formatting?: {
+        main_text?: string;
+        secondary_text?: string;
+      };
+    }>;
+    return predictions
+      .map((item): PlaceSuggestion | null => {
+        if (!item.place_id) return null;
+        return {
+          placeId: item.place_id,
+          description: item.description ?? "",
+          mainText: item.structured_formatting?.main_text,
+          secondaryText: item.structured_formatting?.secondary_text,
+        };
+      })
+      .filter((item): item is PlaceSuggestion => item != null);
   } catch {
     return [];
   }

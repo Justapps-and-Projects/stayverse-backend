@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional, OmitType, PickType } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
-import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString, MinLength, ValidateIf } from "class-validator";
+import { IsBoolean, IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, MinLength, ValidateIf } from "class-validator";
 import parsePhoneNumberFromString from "libphonenumber-js";
 import { IsPhoneNumber } from "src/common/validators/phone-number.validator";
 import { Roles } from "src/common/constants/enum";
@@ -126,6 +126,27 @@ export class DeleteAccountDto {
   @IsString()
   @IsNotEmpty()
   password: string;
+}
+
+export class SocialLoginDto {
+  @ApiProperty({ enum: ['google', 'apple'], example: 'google' })
+  @IsIn(['google', 'apple'])
+  provider: 'google' | 'apple';
+
+  @ApiProperty({ description: 'Google or Apple identity token' })
+  @IsString()
+  @IsNotEmpty()
+  idToken: string;
+
+  @ApiPropertyOptional({ example: 'Ada' })
+  @IsOptional()
+  @IsString()
+  firstname?: string;
+
+  @ApiPropertyOptional({ example: 'Lovelace' })
+  @IsOptional()
+  @IsString()
+  lastname?: string;
 }
 
 export class UpdateKycStatusDto {

@@ -5,11 +5,15 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  Linking,
 } from "react-native";
 import { Text } from "../theme/Text";
 import { radius, spacing } from "../theme/tokens";
 
 type SheetKind = "terms" | "privacy" | null;
+
+export const STAYVERSE_TERMS_URL = "https://www.stayversepro.com/terms";
+export const STAYVERSE_PRIVACY_URL = "https://www.stayversepro.com/privacy";
 
 const TERMS_SECTIONS: { title: string; body: string }[] = [
   {
@@ -113,6 +117,19 @@ export function LegalSheetsHost({
                   <Text style={styles.sectionBody}>{s.body}</Text>
                 </View>
               ))}
+              <Pressable
+                onPress={() =>
+                  void Linking.openURL(
+                    isTerms ? STAYVERSE_TERMS_URL : STAYVERSE_PRIVACY_URL,
+                  )
+                }
+                accessibilityRole="link"
+              >
+                <Text style={styles.hostedLink}>
+                  View full {isTerms ? "Terms" : "Privacy Policy"} on
+                  {" "}stayversepro.com
+                </Text>
+              </Pressable>
             </ScrollView>
             <Pressable style={styles.closeBtn} onPress={() => setKind(null)}>
               <Text style={styles.closeText}>Close</Text>
@@ -180,6 +197,14 @@ const styles = StyleSheet.create({
     color: "#4B5563",
     fontFamily: "NeueMontreal-Regular",
     lineHeight: 20,
+  },
+  hostedLink: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FBC036",
+    fontFamily: "NeueMontreal-Medium",
+    marginTop: 8,
+    marginBottom: 16,
   },
   closeBtn: {
     alignSelf: "center",

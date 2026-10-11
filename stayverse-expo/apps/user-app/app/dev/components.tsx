@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { Link, type Href } from "expo-router";
+import { Link, Redirect, type Href } from "expo-router";
 import type BottomSheet from "@gorhom/bottom-sheet";
 import {
   AppBottomSheet,
@@ -46,6 +46,8 @@ export default function ComponentsKitchenSink() {
     () => (scheme === "dark" ? "bg-dark-bg" : "bg-background"),
     [scheme],
   );
+
+  if (!__DEV__) return <Redirect href={"/(tabs)" as Href} />;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]} className={nwDemoClass}>

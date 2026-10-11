@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, Redirect, type Href } from "expo-router";
 import {
   DetailMapEmbed,
   PlacesAutocompleteField,
@@ -43,6 +43,8 @@ export default function MapDevScreen() {
     setMarkers(DEMO_MARKERS);
     void requestForegroundLocationPermission();
   }, [setMarkers]);
+
+  if (!__DEV__) return <Redirect href={"/(tabs)" as Href} />;
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>

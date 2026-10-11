@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { Stack, router } from "expo-router";
+import { Stack, router, Redirect, type Href } from "expo-router";
 import {
   LocationMapPicker,
   PlacesAutocompleteField,
@@ -21,6 +21,8 @@ export default function AgentMapScreen() {
   const onConfirm = useCallback((value: PickedLocation) => {
     setPicked(value);
   }, []);
+
+  if (!__DEV__) return <Redirect href={"/(tabs)" as Href} />;
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>

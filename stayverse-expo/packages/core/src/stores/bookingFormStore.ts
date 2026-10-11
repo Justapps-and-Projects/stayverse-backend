@@ -5,6 +5,8 @@ export type ApartmentBookingDraft = {
   listingId: string | null;
   title: string;
   address: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   startDate: string | null;
   endDate: string | null;
   nights: number;
@@ -43,6 +45,8 @@ const emptyApartment = (): ApartmentBookingDraft => ({
   listingId: null,
   title: "",
   address: null,
+  latitude: null,
+  longitude: null,
   startDate: null,
   endDate: null,
   nights: 0,

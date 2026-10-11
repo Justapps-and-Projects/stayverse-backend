@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { Redirect, type Href } from "expo-router";
-import { StyleSheet, View } from "react-native";
-import { StayverseLoader } from "@stayverse/ui";
+import { BrandSplash } from "@stayverse/ui";
 import { useAuthStore, useOnboardingStore } from "@stayverse/core";
 
 /**
@@ -28,11 +27,7 @@ export default function AuthGate() {
   }, []);
 
   if (!authHydrated || !onboardingHydrated) {
-    return (
-      <View style={styles.boot}>
-        <StayverseLoader color="#2C2C2C" size={64} />
-      </View>
-    );
+    return <BrandSplash />;
   }
 
   if (isAuthenticated) {
@@ -45,12 +40,3 @@ export default function AuthGate() {
 
   return <Redirect href={"/(auth)/login" as Href} />;
 }
-
-const styles = StyleSheet.create({
-  boot: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-  },
-});

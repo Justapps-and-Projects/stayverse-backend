@@ -10,7 +10,7 @@ import {
   useProfileQuery,
   useSubmitApartmentBookingMutation,
   useSubmitRideBookingMutation,
-  useVerifyPaymentMutation,
+  verifyPaymentWithRetry,
 } from "@stayverse/core";
 import {
   Button,
@@ -34,7 +34,6 @@ export default function BookPaymentScreen() {
   const profileQuery = useProfileQuery();
 
   const fundMutation = useFundWalletMutation();
-  const verifyMutation = useVerifyPaymentMutation();
   const apartmentBook = useSubmitApartmentBookingMutation();
   const rideBook = useSubmitRideBookingMutation();
 
@@ -91,13 +90,13 @@ export default function BookPaymentScreen() {
   }, [apartment, apartmentBook, isApartment, ride, rideBook]);
 
   const onPaystackClose = useCallback(
-    async (success?: boolean) => {
-      const url = paystackUrl;
+    async (_success?: boolean) => {
+      const reference = pendingReference;
       setPaystackUrl(null);
-      if (!success || !pendingReference) return;
+      if (!reference) return;
       setBusyMessage("Verifying payment...");
       try {
-        await verifyMutation.mutateAsync(pendingReference);
+        await verifyPaymentWithRetry(reference);
         await profileQuery.refetch();
         setPendingReference(null);
         setBusyMessage(null);
@@ -106,12 +105,11 @@ export default function BookPaymentScreen() {
         setBusyMessage(null);
         showToast({
           type: "error",
-          title: e instanceof Error ? e.message : "Please try payment again",
+          title: e instanceof Error ? e.message : "Payment was not completed",
         });
       }
-      void url;
     },
-    [paystackUrl, pendingReference, processBooking, profileQuery, verifyMutation],
+    [pendingReference, processBooking, profileQuery],
   );
 
   const submit = async () => {
@@ -177,7 +175,7 @@ export default function BookPaymentScreen() {
         </Text>
         <Row label="Payment Type" value="Wallet Transfer" />
         <Row
-          label={isApartment ? "Apartment Fee" : "Apartment Fee"}
+          label={isApartment ? "Apartment Fee" : "Ride Fee"}
           value={formatNaira(serviceFee)}
         />
         <Row label="Caution Fee" value={formatNaira(cautionFee)} />

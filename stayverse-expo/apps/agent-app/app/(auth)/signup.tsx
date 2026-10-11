@@ -329,7 +329,7 @@ export default function SignupScreen() {
                 >
                   Privacy Policy
                 </Text>
-                Your data will be securely{"\n"}encrypted with US
+                {". Your data will be securely encrypted in transit."}
               </Text>
 
               <View style={{ height: 30 }} />

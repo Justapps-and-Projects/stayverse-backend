@@ -33,7 +33,8 @@ import { StreamChat } from "stream-chat";
 import { STREAM_CLIENT } from 'src/common/providers/stream.provider';
 import { Service } from 'aws-sdk';
 import { Chef, ChefDocument } from 'src/modules/chef/schemas/chef.schema';
-import { UpdateUserDto } from 'src/modules/user/dto/user.dto';
+import { SocialLoginDto, UpdateUserDto } from 'src/modules/user/dto/user.dto';
+import { verifySocialIdentity } from 'src/common/providers/social-token.util';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -133,7 +134,8 @@ export class AgentService {
     return {
       message: 'Agent created successfully',
       chatToken,
-      otp: response.otp,
+      otp: response.emailDelivered ? undefined : response.otp,
+      emailDelivered: response.emailDelivered ?? false,
     };
   }
 
@@ -197,6 +199,45 @@ export class AgentService {
       access_token: token,
       chatToken,
       isEmailVerified: user.isEmailVerified,
+      user: { ...userObj, agent: agent || null },
+    };
+  }
+
+  async loginWithSocial(dto: SocialLoginDto) {
+    const identity = await verifySocialIdentity(dto.provider, dto.idToken);
+    const user = (await this.userModel
+      .findOne({ email: identity.email, role: Roles.AGENT })
+      .select('+passwordHash +balance +notificationsEnabled')) as UserDocument;
+
+    if (!user) {
+      throw new BadRequestException('Agent not found! Sign up with this email first.');
+    }
+
+    const agent = await this.agentModel.findOne({ userId: user._id });
+    if (!agent) throw new BadRequestException('Agent profile not found or has been deleted');
+
+    if (!user.isEmailVerified) {
+      user.isEmailVerified = true;
+      await user.save();
+    }
+
+    const jwtPayload: JwtPayloadDto = {
+      sub: String(user._id),
+      agent: String(agent._id),
+      email: user.email,
+      role: user.role,
+      serviceType: agent?.serviceType || null,
+    };
+    const token = this.jwtService.sign(jwtPayload);
+    const chatToken = this.streamClient.createToken(agent._id.toString());
+    const userObj = user.toObject();
+    delete userObj.passwordHash;
+    delete userObj.otp;
+
+    return {
+      access_token: token,
+      chatToken,
+      isEmailVerified: true,
       user: { ...userObj, agent: agent || null },
     };
   }
@@ -291,7 +332,11 @@ export class AgentService {
       user.otp = response.otp;
       user.pinExpires = dayjs().tz(TIMEZONE).add(OTP_MINUTES, 'minute').toDate();
       await user.save();
-      return { message: 'Verification OTP resent successfully' };
+      return {
+        message: 'Verification OTP resent successfully',
+        emailDelivered: response.emailDelivered ?? false,
+        otp: response.emailDelivered ? undefined : response.otp,
+      };
     }
 
     throw new InternalServerErrorException(

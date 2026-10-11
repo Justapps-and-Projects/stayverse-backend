@@ -12,9 +12,12 @@ import {
 } from "react-native";
 import { Link, router, type Href } from "expo-router";
 import {
+  enableBiometricUnlock,
+  isBiometricUnlockEnabled,
   pickProfileFromCamera,
   pickProfileFromGallery,
   pushDeviceToken,
+  setBiometricUnlockEnabled,
   useAuthStore,
   useProfileQuery,
   useUploadProfilePictureMutation,
@@ -32,7 +35,6 @@ import {
 const SUPPORT_CHAT_URL =
   "https://tawk.to/chat/68d1171589caa6192613d1f4/1j5oc4b5e";
 const ABOUT_URL = "https://www.stayversepro.com/";
-
 function kycBadge(status: KycStatus | null | undefined): {
   label: string;
   color: string;
@@ -78,9 +80,7 @@ function ProfileRow({
           </View>
         ) : null}
       </View>
-      {trailing ?? (
-        <Text style={[styles.chevron, { color: colors.muted }]}>›</Text>
-      )}
+      {trailing}
     </Pressable>
   );
 }
@@ -97,6 +97,7 @@ export function ProfileScreen() {
   const notificationsEnabled = user?.notificationsEnabled ?? false;
   const [notifBusy, setNotifBusy] = useState(false);
   const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
+  const [faceIdOn, setFaceIdOn] = useState(isBiometricUnlockEnabled);
 
   const confirmLogout = useCallback(() => {
     Alert.alert("Log Out 🚨", "Are you sure you want logout?", [
@@ -134,19 +135,24 @@ export function ProfileScreen() {
       const previous = user.notificationsEnabled ?? false;
       setUser({ ...user, notificationsEnabled: enable });
       try {
-        const token = await pushDeviceToken({ enable });
+        const token = await pushDeviceToken({ enable, strict: true });
         if (!token) {
           setUser({ ...user, notificationsEnabled: previous });
           showToast({
             type: "error",
-            title: "Could not update notifications",
+            title: enable
+              ? "Allow notifications in Settings, then try again."
+              : "Could not update notifications",
           });
         } else {
           void profileQuery.refetch();
         }
-      } catch {
+      } catch (e) {
         setUser({ ...user, notificationsEnabled: previous });
-        showToast({ type: "error", title: "Please Try Again" });
+        showToast({
+          type: "error",
+          title: e instanceof Error ? e.message : "Please Try Again",
+        });
       } finally {
         setNotifBusy(false);
       }
@@ -204,7 +210,7 @@ export function ProfileScreen() {
           onPress={changeAvatar}
           style={[
             styles.avatar,
-            { backgroundColor: `${colors.primary}33` },
+            { backgroundColor: colors.primary },
           ]}
           accessibilityRole="button"
           accessibilityLabel="Change profile photo"
@@ -212,7 +218,7 @@ export function ProfileScreen() {
           {avatarUri ? (
             <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
           ) : (
-            <AppIcon name="person" size={40} color={colors.primary} />
+            <AppIcon name="person" size={32} color={colors.foreground} />
           )}
           {uploadMutation.isPending ? (
             <View style={styles.avatarOverlay}>
@@ -220,12 +226,15 @@ export function ProfileScreen() {
             </View>
           ) : null}
         </Pressable>
-        <Text style={[styles.name, { color: colors.foreground }]}>
-          {user?.name ?? ""}
-        </Text>
-        <Text style={[styles.email, { color: colors.muted }]}>
-          {user?.email ?? ""}
-        </Text>
+        <Pressable
+          onPress={() => router.push("/profile/edit" as Href)}
+          accessibilityRole="button"
+          accessibilityLabel="Edit profile"
+        >
+          <Text style={[styles.name, { color: colors.foreground }]}>
+            {user?.name ?? ""}
+          </Text>
+        </Pressable>
       </View>
 
       <View style={styles.menu}>
@@ -233,7 +242,7 @@ export function ProfileScreen() {
           title="Wallet"
           onPress={() => router.push("/wallet" as Href)}
         />
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <View style={[styles.divider, { backgroundColor: "#E8E8E8" }]} />
         <ProfileRow
           title="Notification"
           trailing={
@@ -242,36 +251,58 @@ export function ProfileScreen() {
               disabled={notifBusy}
               onValueChange={(v) => void onToggleNotifications(v)}
               trackColor={{
-                false: colors.border,
-                true: `${colors.primary}4D`,
+                false: "#E5E5E5",
+                true: colors.primary,
               }}
-              thumbColor={
-                notificationsEnabled ? colors.primary : colors.card
-              }
+              thumbColor="#FFFFFF"
             />
           }
         />
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <View style={[styles.divider, { backgroundColor: "#E8E8E8" }]} />
         <ProfileRow
-          title="Curated Messages"
-          onPress={() => router.push("/(tabs)/inbox" as Href)}
+          title="Finger Print/Face ID"
+          trailing={
+            <Switch
+              value={faceIdOn}
+              onValueChange={(value) => {
+                if (!value) {
+                  setFaceIdOn(false);
+                  setBiometricUnlockEnabled(false);
+                  return;
+                }
+                void enableBiometricUnlock().then((message) => {
+                  if (message) {
+                    setFaceIdOn(false);
+                    showToast({ type: "error", title: message });
+                    return;
+                  }
+                  setFaceIdOn(true);
+                });
+              }}
+              trackColor={{
+                false: "#E5E5E5",
+                true: colors.primary,
+              }}
+              thumbColor="#FFFFFF"
+            />
+          }
         />
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <View style={[styles.divider, { backgroundColor: "#E8E8E8" }]} />
         <ProfileRow
-          title="Change Password"
+          title="Password"
           onPress={() => router.push("/profile/change-password" as Href)}
         />
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <View style={[styles.divider, { backgroundColor: "#E8E8E8" }]} />
         <ProfileRow
           title="Chat Support"
           onPress={() => void Linking.openURL(SUPPORT_CHAT_URL)}
         />
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <View style={[styles.divider, { backgroundColor: "#E8E8E8" }]} />
         <ProfileRow
           title="About"
           onPress={() => void Linking.openURL(ABOUT_URL)}
         />
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <View style={[styles.divider, { backgroundColor: "#E8E8E8" }]} />
         <ProfileRow
           title="KYC"
           badge={badge}
@@ -330,9 +361,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   avatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    width: 66,
+    height: 66,
+    borderRadius: 33,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -349,11 +380,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   name: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  email: {
-    fontSize: 13,
+    fontSize: 20,
+    fontFamily: "NeueMontreal-Medium",
+    marginTop: 8,
   },
   menu: {
     marginTop: spacing.md,
@@ -372,8 +401,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rowTitle: {
-    fontSize: 15,
-    fontWeight: "400",
+    fontSize: 16,
+    fontFamily: "NeueMontreal-Regular",
   },
   badge: {
     paddingHorizontal: 8,
@@ -383,10 +412,6 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontWeight: "500",
-  },
-  chevron: {
-    fontSize: 22,
-    marginLeft: spacing.sm,
   },
   divider: {
     height: StyleSheet.hairlineWidth,

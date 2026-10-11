@@ -314,7 +314,6 @@ function ServiceDetailBody({ listing }: { listing: ListingDetails }) {
               <Text style={styles.stat}>
                 {listing.bedrooms ?? "N/A"} Bedrooms
               </Text>
-              <Text style={styles.stat}>2 Bathrooms</Text>
               <Text style={styles.stat}>
                 {listing.maxGuests ?? "N/A"} Guests
               </Text>
@@ -382,8 +381,36 @@ function ServiceDetailBody({ listing }: { listing: ListingDetails }) {
 function ChefDetailBody({ listing }: { listing: ListingDetails }) {
   const { colors } = useTheme();
   const [showAllExp, setShowAllExp] = useState(false);
+  const [hiring, setHiring] = useState(false);
   const experiences = listing.experiences ?? [];
   const visibleExp = showAllExp ? experiences : experiences.slice(0, 2);
+
+  const openChefChat = async () => {
+    const myId = getStreamUserId(useAuthStore.getState().user);
+    const peerId = listing.host?.id ?? listing.id;
+    if (!myId) {
+      showToast({
+        type: "error",
+        title: "Chat Agent",
+        message: "Log in/Sign Up to Chat a Agent",
+      });
+      return;
+    }
+    setHiring(true);
+    try {
+      const channel = await watchMessagingChannel([myId, peerId], listing.title);
+      router.push(`/chat/${encodeURIComponent(channel.cid)}` as Href);
+    } catch (e) {
+      showToast({
+        type: "error",
+        title: "Hire Chef",
+        message:
+          e instanceof Error ? e.message : "Could not open chat at this moment",
+      });
+    } finally {
+      setHiring(false);
+    }
+  };
 
   return (
     <View style={styles.pad}>
@@ -433,38 +460,7 @@ function ChefDetailBody({ listing }: { listing: ListingDetails }) {
         </Text>
         <View style={styles.hostActions}>
           <Pressable
-            onPress={() => {
-              void (async () => {
-                const myId = getStreamUserId(useAuthStore.getState().user);
-                const peerId = listing.host?.id ?? listing.id;
-                if (!myId) {
-                  showToast({
-                    type: "error",
-                    title: "Chat Agent",
-                    message: "Log in/Sign Up to Chat a Agent",
-                  });
-                  return;
-                }
-                try {
-                  const channel = await watchMessagingChannel(
-                    [myId, peerId],
-                    listing.title,
-                  );
-                  router.push(
-                    `/chat/${encodeURIComponent(channel.cid)}` as Href,
-                  );
-                } catch (e) {
-                  showToast({
-                    type: "error",
-                    title: "Call Agent",
-                    message:
-                      e instanceof Error
-                        ? e.message
-                        : "Could not open chat at this moment",
-                  });
-                }
-              })();
-            }}
+            onPress={() => void openChefChat()}
             accessibilityLabel="Chat with agent"
             style={styles.iconBtn}
           >
@@ -549,6 +545,14 @@ function ChefDetailBody({ listing }: { listing: ListingDetails }) {
           </View>
         ))
       )}
+
+      <View style={styles.ctaPad}>
+        <Button
+          label={hiring ? "Opening chat..." : "Hire this chef"}
+          onPress={() => void openChefChat()}
+          disabled={hiring}
+        />
+      </View>
     </View>
   );
 }

@@ -24,6 +24,7 @@ vi.mock("../../stores/authStore", () => ({
 import {
   cancelBooking,
   fetchBookings,
+  fetchNearbyListings,
   fundWallet,
   verifyKyc,
 } from "./catalog";
@@ -145,5 +146,34 @@ describe("catalog endpoints", () => {
         selfie: { uri: "file://x.jpg", name: "x.jpg", type: "image/jpeg" },
       }),
     ).rejects.toThrow("Bad NIN");
+  });
+
+  it("fetchNearbyListings uses recommended coords and maps results", async () => {
+    get.mockResolvedValue({
+      data: {
+        statusCode: 200,
+        message: "ok",
+        data: {
+          chefs: [
+            {
+              _id: "c1",
+              fullName: "Ada Chef",
+              bio: "Lagos",
+              pricingPerHour: 15000,
+            },
+          ],
+        },
+      },
+    });
+    const items = await fetchNearbyListings("chef", {
+      latitude: 6.5,
+      longitude: 3.3,
+    });
+    expect(get).toHaveBeenCalledWith("/chef/recommended", {
+      params: { lat: 6.5, lng: 3.3, limit: 8, page: 1 },
+    });
+    expect(items.some((item) => item.id === "c1" || item.kind === "chef")).toBe(
+      true,
+    );
   });
 });

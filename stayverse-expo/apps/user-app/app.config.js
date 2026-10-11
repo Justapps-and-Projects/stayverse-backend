@@ -49,7 +49,7 @@ module.exports = ({ config }) => ({
   name: "Stayverse",
   slug: "stayverse-user",
   owner: "oyekunlesolomon",
-  version: "2.0.0",
+  version: "2.0.1",
   orientation: "portrait",
   icon: "./assets/icon.png",
   scheme: "stayverse",
@@ -63,7 +63,7 @@ module.exports = ({ config }) => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.stayverse.app",
-    buildNumber: "2",
+    buildNumber: "10",
     googleServicesFile: "./GoogleService-Info.plist",
     config: {
       googleMapsApiKey:
@@ -75,9 +75,9 @@ module.exports = ({ config }) => ({
       ITSAppUsesNonExemptEncryption: false,
       UIBackgroundModes: ["remote-notification", "fetch"],
       NSLocationWhenInUseUsageDescription:
-        "We need your location to determine which services are available in your region.",
+        "Stayverse uses your location to show apartments, chefs, and cars available near you.",
       NSLocationAlwaysAndWhenInUseUsageDescription:
-        "We need your location to determine which services are available in your region.",
+        "Stayverse uses your location to show apartments, chefs, and cars available near you.",
       NSCameraUsageDescription:
         "We need camera access to allow you to take and send images.",
       NSPhotoLibraryUsageDescription:
@@ -96,7 +96,7 @@ module.exports = ({ config }) => ({
       monochromeImage: "./assets/android-icon-monochrome.png",
     },
     package: "com.stayversepro.app",
-    versionCode: 2,
+    versionCode: 6,
     googleServicesFile: "./google-services.json",
     predictiveBackGestureEnabled: false,
     config: {
@@ -120,16 +120,32 @@ module.exports = ({ config }) => ({
     bundler: "metro",
   },
   plugins: [
+    [
+      "react-native-maps",
+      {
+        iosGoogleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_SDK_KEY || process.env.EXPO_PUBLIC_GOOGLE_API_KEY || "",
+        androidGoogleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_SDK_KEY || process.env.EXPO_PUBLIC_GOOGLE_API_KEY || "",
+      },
+    ],
     "expo-router",
     "expo-status-bar",
     "expo-secure-store",
+    "expo-web-browser",
+    "expo-apple-authentication",
+    [
+      "expo-local-authentication",
+      {
+        faceIDPermission:
+          "Allow Stayverse to use Face ID so you can unlock the app.",
+      },
+    ],
     [
       "expo-location",
       {
         locationWhenInUsePermission:
-          "We need your location to determine which services are available in your region.",
+          "Stayverse uses your location to show apartments, chefs, and cars available near you.",
         locationAlwaysAndWhenInUsePermission:
-          "We need your location to determine which services are available in your region.",
+          "Stayverse uses your location to show apartments, chefs, and cars available near you.",
       },
     ],
     [

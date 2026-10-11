@@ -17,6 +17,7 @@ import {
   fetchHomeApartments,
   fetchHomeChefs,
   fetchHomeRides,
+  fetchNearbyListings,
   fetchListedApartments,
   fetchListedRides,
   fetchProfile,
@@ -84,6 +85,18 @@ export function useHomeChefsQuery() {
   return useQuery({
     queryKey: queryKeys.home.chefs(),
     queryFn: fetchHomeChefs,
+  });
+}
+
+export function useNearbyListingsQuery(
+  kind: CatalogServiceType,
+  coords: { latitude: number; longitude: number } | null | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: queryKeys.home.nearby(kind, coords?.latitude, coords?.longitude),
+    queryFn: () => fetchNearbyListings(kind, coords!),
+    enabled: enabled && !!coords,
   });
 }
 

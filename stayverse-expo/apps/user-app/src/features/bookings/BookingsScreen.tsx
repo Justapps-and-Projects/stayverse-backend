@@ -26,16 +26,16 @@ import {
 } from "@stayverse/ui";
 
 const TABS: { key: BookingsFilter; label: string }[] = [
-  { key: "accepted", label: "Accepted" },
-  { key: "completed", label: "Completed" },
+  { key: "accepted", label: "Active" },
   { key: "pending", label: "Pending" },
+  { key: "completed", label: "Completed" },
   { key: "rejected", label: "Rejected" },
 ];
 
 function emptyCopy(filter: BookingsFilter) {
   const subtitle = "No bookings available at the moment,";
   if (filter === "accepted") {
-    return { title: "No Accepted Bookings", subtitle };
+    return { title: "No Active Bookings", subtitle };
   }
   if (filter === "completed") {
     return { title: "No Completed Bookings", subtitle };
@@ -46,49 +46,52 @@ function emptyCopy(filter: BookingsFilter) {
   return { title: "No Active Bookings", subtitle };
 }
 
-function SegmentTab({
+function formatStayDate(iso?: string | null): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function stayLine(item: BookingSummary): string {
+  const start = formatStayDate(item.startDate);
+  const end = formatStayDate(item.endDate);
+  if (start && end && start !== end) return `${start} - ${end}`;
+  if (start) return `Check-in ${start}`;
+  return end ? `Check-out ${end}` : "";
+}
+
+function PillTab({
   label,
   selected,
-  isFirst,
-  isLast,
   onPress,
 }: {
   label: string;
   selected: boolean;
-  isFirst: boolean;
-  isLast: boolean;
   onPress: () => void;
 }) {
   const { colors } = useTheme();
-
-  const radius = selected
-    ? isFirst
-      ? { borderTopLeftRadius: 18, borderBottomLeftRadius: 18 }
-      : isLast
-        ? { borderTopRightRadius: 18, borderBottomRightRadius: 18 }
-        : { borderRadius: 20 }
-    : undefined;
 
   return (
     <Pressable
       onPress={onPress}
       style={[
-        styles.segment,
-        radius,
-        { backgroundColor: selected ? colors.primary : "transparent" },
+        styles.pill,
+        {
+          backgroundColor: selected ? colors.primary : "transparent",
+          borderColor: colors.primary,
+        },
       ]}
       accessibilityRole="tab"
       accessibilityState={{ selected }}
     >
       <Text
         numberOfLines={1}
-        style={[
-          styles.segmentLabel,
-          {
-            color: selected ? colors.foreground : colors.muted,
-            fontWeight: selected ? "600" : "400",
-          },
-        ]}
+        style={[styles.pillLabel, { color: colors.foreground }]}
       >
         {label}
       </Text>
@@ -120,20 +123,22 @@ function BookingsCard({ item }: { item: BookingSummary }) {
           {item.title}
         </Text>
         <View style={styles.locationRow}>
-          <AppIcon name="location" size={14} color={colors.muted} />
+          <AppIcon name="location" size={12} color={colors.muted} />
           <Text numberOfLines={1} style={[styles.cardMeta, { color: colors.muted }]}>
             {item.address}
           </Text>
         </View>
-        <Text numberOfLines={1} style={[styles.cardDesc, { color: colors.muted }]}>
-          {item.description}
-        </Text>
+        {stayLine(item) ? (
+          <Text numberOfLines={1} style={styles.cardDate}>
+            {stayLine(item)}
+          </Text>
+        ) : null}
       </View>
     </Pressable>
   );
 }
 
-/** Flutter `BookingsPage` — Accepted / Completed / Pending / Rejected. */
+/** Bookings list — Active and Completed. */
 export function BookingsScreen() {
   const { colors } = useTheme();
 
@@ -149,19 +154,12 @@ export function BookingsScreen() {
   const refreshing = query.isRefetching && !query.isFetchingNextPage;
 
   const listHeader = (
-    <View
-      style={[
-        styles.segmentWrap,
-        { borderColor: colors.primary, backgroundColor: colors.card },
-      ]}
-    >
-      {TABS.map((tab, index) => (
-        <SegmentTab
+    <View style={styles.pillRow}>
+      {TABS.map((tab) => (
+        <PillTab
           key={tab.key}
           label={tab.label}
           selected={tab.key === filter}
-          isFirst={index === 0}
-          isLast={index === TABS.length - 1}
           onPress={() => setFilter(tab.key)}
         />
       ))}
@@ -239,45 +237,48 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   fill: { flexGrow: 1 },
-  segmentWrap: {
+  pillRow: {
     flexDirection: "row",
-    borderWidth: 1.5,
-    borderRadius: 20,
-    padding: 2,
-    overflow: "hidden",
+    gap: 12,
   },
-  segment: {
+  pill: {
     flex: 1,
-    paddingVertical: 10,
+    height: 36,
+    borderRadius: 52,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 4,
   },
-  segmentLabel: {
+  pillLabel: {
     fontSize: 11,
+    fontFamily: "NeueMontreal-Medium",
   },
   card: {
     flexDirection: "row",
-    borderRadius: 12,
+    height: 82,
+    borderRadius: 6,
     overflow: "hidden",
+    backgroundColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
-    shadowRadius: 5,
+    shadowRadius: 6,
     elevation: 2,
   },
   cardImage: {
-    width: 130,
-    height: 100,
+    width: 119,
+    height: 82,
   },
   cardBody: {
     flex: 1,
-    padding: 12,
+    paddingHorizontal: 10,
     justifyContent: "center",
-    gap: 4,
+    gap: 2,
   },
   cardTitle: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 12,
+    fontFamily: "NeueMontreal-Medium",
   },
   locationRow: {
     flexDirection: "row",
@@ -285,13 +286,14 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   cardMeta: {
-    fontSize: 12,
+    fontSize: 11,
+    fontFamily: "NeueMontreal-Regular",
     flex: 1,
   },
-  cardDesc: {
-    marginTop: 4,
-    fontSize: 12,
-    fontWeight: "500",
+  cardDate: {
+    fontSize: 11,
+    fontFamily: "NeueMontreal-Regular",
+    color: "#D1D1D6",
   },
   centered: {
     flex: 1,

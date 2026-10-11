@@ -28,7 +28,21 @@
     "production": {
       "env": {
         "APP_ENV": "production",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "EXPO_PUBLIC_APP_TARGET": "user",
+        "EXPO_PUBLIC_API_BASE_URL": "https://stayverse-backend-lzlu.onrender.com",
+        "EXPO_PUBLIC_SOCKET_URL": "https://stayverse-backend-lzlu.onrender.com",
+        "EXPO_PUBLIC_GOOGLE_API_KEY": "AIzaSyDAR_TXgokn-3zvsLQF-Cl697aAtThbfKU",
+        "EXPO_PUBLIC_GOOGLE_MAPS_SDK_KEY": "AIzaSyDAR_TXgokn-3zvsLQF-Cl697aAtThbfKU",
+        "EXPO_PUBLIC_GET_STREAM_KEY": "b8dpqx27vz3r",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://e031bbdb28e2255ef3eaac5349f1cd5e@o4510741094268928.ingest.us.sentry.io/4510741096628227"
+      },
+      "ios": {
+        "image": "sdk-57",
+        "cocoapods": "1.16.2"
+      },
+      "android": {
+        "buildType": "app-bundle"
       }
     }
   },

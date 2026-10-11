@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Image,
   Pressable,
@@ -9,7 +9,10 @@ import {
 import { Stack, router } from "expo-router";
 import {
   PlacesAutocompleteField,
+  geocodeAddress,
   pickListingImages,
+  prepareImageForUpload,
+  useAuthStore,
   useCreateChefProfileMutation,
   type PickedImage,
   type PlaceSuggestion,
@@ -38,7 +41,9 @@ const SPECIALTIES = [
 export default function CreateChefScreen() {
   const { colors } = useTheme();
   const mutation = useCreateChefProfileMutation();
+  const accountName = useAuthStore((s) => s.user?.name ?? "");
 
+  const [fullName, setFullName] = useState(accountName);
   const [bio, setBio] = useState("");
   const [price, setPrice] = useState("");
   const [address, setAddress] = useState("");
@@ -47,31 +52,70 @@ export default function CreateChefScreen() {
   const [cover, setCover] = useState<PickedImage | null>(null);
   const [profile, setProfile] = useState<PickedImage | null>(null);
 
-  const canSubmit = useMemo(
-    () => bio.trim().length > 10 && Number(price) > 0,
-    [bio, price],
-  );
-
   const toggle = (item: string) => {
-    setSpecialties((prev) =>
-      prev.includes(item) ? prev.filter((a) => a !== item) : [...prev, item],
-    );
+    setSpecialties((prev) => {
+      if (prev.includes(item)) return prev.filter((a) => a !== item);
+      if (prev.length >= 5) {
+        showToast({ type: "error", title: "Choose up to 5 specialties" });
+        return prev;
+      }
+      return [...prev, item];
+    });
   };
 
   const submit = async () => {
-    if (!canSubmit) {
-      showToast({ type: "error", title: "Add bio and hourly price" });
+    const name = fullName.trim();
+    if (name.length < 2) {
+      showToast({ type: "error", title: "Enter your full name" });
       return;
     }
+    if (bio.trim().length < 10) {
+      showToast({ type: "error", title: "Add a bio of at least 10 characters" });
+      return;
+    }
+    if (!(Number(price) > 0)) {
+      showToast({ type: "error", title: "Add an hourly price" });
+      return;
+    }
+    if (specialties.length < 3) {
+      showToast({ type: "error", title: "Choose at least 3 specialties" });
+      return;
+    }
+    if (!profile || !cover) {
+      showToast({ type: "error", title: "Add a profile photo and a cover photo" });
+      return;
+    }
+
+    let resolvedPlaceId = placeId;
+    let resolvedAddress = address.trim();
+    if (!resolvedPlaceId && resolvedAddress) {
+      const geo = await geocodeAddress(resolvedAddress);
+      resolvedPlaceId = geo?.placeId ?? null;
+      if (geo?.formattedAddress) resolvedAddress = geo.formattedAddress;
+    }
+    if (!resolvedPlaceId) {
+      showToast({
+        type: "error",
+        title: "Choose an address from the suggestions",
+      });
+      return;
+    }
+
     try {
+      const [profilePhoto, coverPhoto] = await Promise.all([
+        prepareImageForUpload(profile.uri),
+        prepareImageForUpload(cover.uri),
+      ]);
       await mutation.mutateAsync({
+        fullName: name,
         bio: bio.trim(),
+        about: bio.trim(),
         culinarySpecialties: specialties,
         pricingPerHour: Number(price) || 0,
-        address: address.trim() || undefined,
-        placeId,
-        coverPhoto: cover,
-        profilePicture: profile,
+        address: resolvedAddress || undefined,
+        placeId: resolvedPlaceId,
+        coverPhoto,
+        profilePicture: profilePhoto,
       });
       showToast({ type: "success", title: "Chef profile submitted" });
       router.back();
@@ -88,6 +132,12 @@ export default function CreateChefScreen() {
       <Stack.Screen options={{ title: "Chef Profile" }} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text muted>Set up your chef profile</Text>
+        <TextField
+          label="Full name"
+          value={fullName}
+          onChangeText={setFullName}
+          placeholder="Your name as guests should see it"
+        />
         <TextField
           label="Bio"
           value={bio}
@@ -172,7 +222,6 @@ export default function CreateChefScreen() {
           variant="dark"
           onPress={() => void submit()}
           loading={mutation.isPending}
-          disabled={!canSubmit}
         />
       </ScrollView>
     </View>

@@ -138,6 +138,7 @@ export const StorageKeys = {
   lastScreen: "screenStorageScreen.key",
   sessionMeta: "session.user.key",
   deviceToken: "deviceToken",
+  biometrics: "stayverse.biometrics",
   rideId: "ride.Id.Key",
 } as const;
 

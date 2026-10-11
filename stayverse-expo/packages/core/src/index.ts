@@ -45,6 +45,17 @@ export { createQueryClient, queryKeys } from "./query/client";
 export { StayverseQueryProvider } from "./query/QueryProvider";
 export { useHealthQuery } from "./hooks/useHealthQuery";
 export * from "./hooks/useAuthMutations";
+export {
+  enableBiometricUnlock,
+  isBiometricUnlockEnabled,
+  setBiometricUnlockEnabled,
+} from "./auth/biometrics";
+export {
+  isSocialSignInCancelled,
+  promptAppleIdToken,
+  promptGoogleIdToken,
+  SocialSignInCancelled,
+} from "./auth/socialSignIn";
 export * from "./hooks/useCatalogQueries";
 export { useSocketConnection } from "./hooks/useSocketConnection";
 export { usePushNotifications } from "./hooks/usePushNotifications";

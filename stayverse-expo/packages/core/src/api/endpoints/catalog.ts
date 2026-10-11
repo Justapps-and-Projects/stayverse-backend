@@ -97,6 +97,35 @@ export async function fetchHomeChefs(): Promise<ListingSummary[]> {
   return fetchCatalogRecommendations("chef");
 }
 
+/**
+ * Nearby listings — `GET /{apartment|ride|chef}/recommended?lat=&lng=`.
+ * Falls back to the unfiltered home feed when coords fail or the area is empty.
+ */
+export async function fetchNearbyListings(
+  kind: CatalogServiceType,
+  coords: { latitude: number; longitude: number },
+): Promise<ListingSummary[]> {
+  try {
+    const res = await getApiClient().get(`/${kind}/recommended`, {
+      params: {
+        lat: coords.latitude,
+        lng: coords.longitude,
+        limit: 8,
+        page: 1,
+      },
+    });
+    const envelope = parseServerResponse<unknown>(res.data);
+    if (envelope.isSuccess) {
+      const payload = unwrapCatalogData(envelope.payload ?? envelope.data ?? res.data);
+      const mapped = mapCatalogList(kind, payload);
+      if (mapped.length > 0) return mapped;
+    }
+  } catch {
+    // Fall through to the general catalog feed.
+  }
+  return fetchCatalogRecommendations(kind);
+}
+
 /** Flutter search — `GET /{apartment|ride|chef}/search`. */
 export async function fetchSearchResults(input: {
   serviceType: CatalogServiceType;
@@ -585,7 +614,9 @@ export async function updateBookingStatus(input: {
 }
 
 export type CreateChefProfileInput = {
+  fullName: string;
   bio: string;
+  about?: string;
   culinarySpecialties: string[];
   pricingPerHour: number;
   address?: string;
@@ -599,7 +630,9 @@ export async function createChefProfile(
   input: CreateChefProfileInput,
 ): Promise<void> {
   const form = new FormData();
+  form.append("fullName", input.fullName);
   form.append("bio", input.bio);
+  form.append("about", input.about?.trim() || input.bio);
   form.append("pricingPerHour", String(input.pricingPerHour));
   if (input.address) form.append("address", input.address);
   if (input.placeId) form.append("placeId", input.placeId);
@@ -773,6 +806,26 @@ export async function fundWallet(amount: number): Promise<FundWalletResult> {
         ? String(data.access_code ?? data.accessCode)
         : null,
   };
+}
+
+/** Confirms a Paystack charge, retrying while the charge is still settling. */
+export async function verifyPaymentWithRetry(
+  reference: string,
+  attempts = 3,
+): Promise<void> {
+  let last: unknown;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      await verifyPayment(reference);
+      return;
+    } catch (error) {
+      last = error;
+      if (attempt < attempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+    }
+  }
+  throw last;
 }
 
 /** Flutter `POST /payments/verify/:reference`. */

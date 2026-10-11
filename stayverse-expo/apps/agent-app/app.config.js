@@ -45,7 +45,7 @@ module.exports = ({ config }) => ({
   name: "Stayverse Agent",
   slug: "stayverse-agent-app",
   owner: "oyekunlesolomon",
-  version: "2.0.0",
+  version: "2.0.1",
   orientation: "portrait",
   icon: "./assets/icon.png",
   scheme: "stayverse-agent",
@@ -59,7 +59,7 @@ module.exports = ({ config }) => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.stayverse.agent.app",
-    buildNumber: "3",
+    buildNumber: "11",
     googleServicesFile: "./GoogleService-Info.plist",
     config: {
       googleMapsApiKey:
@@ -71,9 +71,9 @@ module.exports = ({ config }) => ({
       ITSAppUsesNonExemptEncryption: false,
       UIBackgroundModes: ["remote-notification", "fetch"],
       NSLocationWhenInUseUsageDescription:
-        "We need your location to determine which services are available in your region.",
+        "Stayverse Agent uses your location to set listing addresses and share live location during ride jobs.",
       NSLocationAlwaysAndWhenInUseUsageDescription:
-        "We need your location to determine which services are available in your region.",
+        "Stayverse Agent uses your location to set listing addresses and share live location during ride jobs.",
       NSCameraUsageDescription:
         "We need camera access to allow you to take and send images.",
       NSPhotoLibraryUsageDescription:
@@ -92,7 +92,7 @@ module.exports = ({ config }) => ({
       monochromeImage: "./assets/android-icon-monochrome.png",
     },
     package: "com.stayverse.agent.app",
-    versionCode: 2,
+    versionCode: 5,
     googleServicesFile: "./google-services.json",
     predictiveBackGestureEnabled: false,
     config: {
@@ -116,16 +116,32 @@ module.exports = ({ config }) => ({
     bundler: "metro",
   },
   plugins: [
+    [
+      "react-native-maps",
+      {
+        iosGoogleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_SDK_KEY || process.env.EXPO_PUBLIC_GOOGLE_API_KEY || "",
+        androidGoogleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_SDK_KEY || process.env.EXPO_PUBLIC_GOOGLE_API_KEY || "",
+      },
+    ],
     "expo-router",
     "expo-status-bar",
     "expo-secure-store",
+    "expo-web-browser",
+    "expo-apple-authentication",
+    [
+      "expo-local-authentication",
+      {
+        faceIDPermission:
+          "Allow Stayverse Agent to use Face ID so you can unlock the app.",
+      },
+    ],
     [
       "expo-location",
       {
         locationWhenInUsePermission:
-          "We need your location to determine which services are available in your region.",
+          "Stayverse Agent uses your location to set listing addresses and share live location during ride jobs.",
         locationAlwaysAndWhenInUsePermission:
-          "We need your location to determine which services are available in your region.",
+          "Stayverse Agent uses your location to set listing addresses and share live location during ride jobs.",
       },
     ],
     [
