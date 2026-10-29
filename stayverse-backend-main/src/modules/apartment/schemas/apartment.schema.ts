@@ -1,3 +1,4 @@
+import { ListingLocationSchema } from '../../../common/schemas/listing-location.schema';
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Types } from "mongoose";
 import mongoose from "mongoose";
@@ -21,19 +22,9 @@ export class Apartment {
     @Prop({ required: true })
     address: string;
 
-    @Prop({ type: String, required: true })
+    @Prop({ type: String, required: false })
     placeId: string;
-    @Prop({
-        type: {
-            type: String,
-            enum: ['Point'],
-            default: 'Point',
-        },
-        coordinates: {
-            type: [Number, Number],
-            required: true,
-        }
-    })
+    @Prop({ type: ListingLocationSchema, default: null })
     location: {
         type: 'Point';
         coordinates: [number, number];

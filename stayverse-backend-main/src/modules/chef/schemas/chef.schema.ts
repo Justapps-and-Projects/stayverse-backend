@@ -1,3 +1,4 @@
+import { ListingLocationSchema } from '../../../common/schemas/listing-location.schema';
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Types } from "mongoose";
 import { Certification } from "./certification.schema";
@@ -20,20 +21,10 @@ export class Chef {
   @Prop({ required: true })
   address: string;
 
-  @Prop({ type: String, required: true })
+  @Prop({ type: String, required: false })
   placeId: string;
 
-  @Prop({
-    type: {
-      type: String,
-      enum: ['Point'],
-      default: 'Point',
-    },
-    coordinates: {
-      type: [Number],
-      required: true,
-    }
-  })
+  @Prop({ type: ListingLocationSchema, default: null })
   location: {
     type: 'Point';
     coordinates: [number, number];

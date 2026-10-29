@@ -59,7 +59,7 @@ module.exports = ({ config }) => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: "com.stayverse.agent.app",
-    buildNumber: "11",
+    buildNumber: "12",
     googleServicesFile: "./GoogleService-Info.plist",
     config: {
       googleMapsApiKey:
@@ -92,7 +92,7 @@ module.exports = ({ config }) => ({
       monochromeImage: "./assets/android-icon-monochrome.png",
     },
     package: "com.stayverse.agent.app",
-    versionCode: 5,
+    versionCode: 7,
     googleServicesFile: "./google-services.json",
     predictiveBackGestureEnabled: false,
     config: {

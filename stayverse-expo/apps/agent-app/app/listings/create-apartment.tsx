@@ -1,3 +1,4 @@
+import { ListingAddressField } from "../../src/components/ListingAddressField";
 import { useMemo, useState } from "react";
 import {
   Image,
@@ -8,11 +9,9 @@ import {
 } from "react-native";
 import { Stack, router } from "expo-router";
 import {
-  PlacesAutocompleteField,
   pickListingImages,
   useCreateApartmentListingMutation,
   type PickedImage,
-  type PlaceSuggestion,
 } from "@stayverse/core";
 import {
   Button,
@@ -134,18 +133,12 @@ export default function CreateApartmentScreen() {
           style={{ minHeight: 80, textAlignVertical: "top" }}
         />
 
-        <PlacesAutocompleteField
-          label=""
-          value={address}
-          onChangeText={(text) => {
+        <ListingAddressField
+          address={address}
+          onChange={(text, selectedPlaceId) => {
             setAddress(text);
-            setPlaceId(null);
+            setPlaceId(selectedPlaceId);
           }}
-          onSelect={(s: PlaceSuggestion) => {
-            setAddress(s.description);
-            setPlaceId(s.placeId);
-          }}
-          placeholder="Search address"
         />
 
         <Text style={[styles.label, { color: colors.foreground }]}>Type</Text>

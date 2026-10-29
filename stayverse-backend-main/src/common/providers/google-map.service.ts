@@ -10,6 +10,22 @@ export class GoogleMapsService {
     constructor(
         private readonly configService: ConfigService,
     ) { }
+    async resolveListingAddress(input: { address?: string; placeId?: string }) {
+        const address = input.address?.trim();
+        const placeId = input.placeId?.trim();
+        if (!placeId) {
+            if (!address) throw new UnprocessableEntityException('Enter an address or choose a location.');
+            // Do not invent coordinates or retain a previous location for a manual address.
+            return { address, placeId: null, location: null };
+        }
+        const geo = await this.reverseGeocode(placeId);
+        return {
+            address: address || geo.formattedAddress,
+            placeId,
+            location: { type: 'Point', coordinates: [geo.coordinates.lng, geo.coordinates.lat] },
+        };
+    }
+
     async reverseGeocode(placeId: string) {
         try {
             if (!placeId) {

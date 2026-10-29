@@ -1,3 +1,4 @@
+import { ListingAddressField } from "../../src/components/ListingAddressField";
 import { useState } from "react";
 import {
   Image,
@@ -8,14 +9,11 @@ import {
 } from "react-native";
 import { Stack, router } from "expo-router";
 import {
-  PlacesAutocompleteField,
-  geocodeAddress,
   pickListingImages,
   prepareImageForUpload,
   useAuthStore,
   useCreateChefProfileMutation,
   type PickedImage,
-  type PlaceSuggestion,
 } from "@stayverse/core";
 import {
   Button,
@@ -86,18 +84,8 @@ export default function CreateChefScreen() {
       return;
     }
 
-    let resolvedPlaceId = placeId;
-    let resolvedAddress = address.trim();
-    if (!resolvedPlaceId && resolvedAddress) {
-      const geo = await geocodeAddress(resolvedAddress);
-      resolvedPlaceId = geo?.placeId ?? null;
-      if (geo?.formattedAddress) resolvedAddress = geo.formattedAddress;
-    }
-    if (!resolvedPlaceId) {
-      showToast({
-        type: "error",
-        title: "Choose an address from the suggestions",
-      });
+    if (!address.trim()) {
+      showToast({ type: "error", title: "Enter your address" });
       return;
     }
 
@@ -112,8 +100,8 @@ export default function CreateChefScreen() {
         about: bio.trim(),
         culinarySpecialties: specialties,
         pricingPerHour: Number(price) || 0,
-        address: resolvedAddress || undefined,
-        placeId: resolvedPlaceId,
+        address: address.trim(),
+        placeId,
         coverPhoto,
         profilePicture: profilePhoto,
       });
@@ -152,16 +140,11 @@ export default function CreateChefScreen() {
           keyboardType="decimal-pad"
           prefix={<Text>₦</Text>}
         />
-        <PlacesAutocompleteField
-          label="Address"
-          value={address}
-          onChangeText={(t) => {
-            setAddress(t);
-            setPlaceId(null);
-          }}
-          onSelect={(s: PlaceSuggestion) => {
-            setAddress(s.description);
-            setPlaceId(s.placeId);
+        <ListingAddressField
+          address={address}
+          onChange={(text, selectedPlaceId) => {
+            setAddress(text);
+            setPlaceId(selectedPlaceId);
           }}
         />
         <Text style={[styles.label, { color: colors.foreground }]}>

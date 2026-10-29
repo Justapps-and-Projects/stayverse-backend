@@ -86,14 +86,10 @@ export class ChefService {
   }
 
   async create(dto: CreateChefDto, agentId: string): Promise<Chef> {
-    const geo = await this.googleMapsService.reverseGeocode(dto.placeId);
+    const listingAddress = await this.googleMapsService.resolveListingAddress(dto);
     const chef = new this.chefModel({
       ...dto,
-      address: geo.formattedAddress,
-      location: {
-        type: 'Point',
-        coordinates: [geo.coordinates.lng, geo.coordinates.lat],
-      },
+      ...listingAddress,
       _id: toObjectId(agentId),
       agentId: toObjectId(agentId)
     });
@@ -716,6 +712,9 @@ export class ChefService {
 
   async update(id: string, updateChefDto: UpdateChefDto): Promise<Chef> {
     const cleanedDto = stripEmptyFields(updateChefDto);
+    if (updateChefDto.address !== undefined || updateChefDto.placeId?.trim()) {
+      Object.assign(cleanedDto, await this.googleMapsService.resolveListingAddress(updateChefDto));
+    }
     const updatedChef = await this.chefModel.findByIdAndUpdate(
       id,
       { $set: cleanedDto },

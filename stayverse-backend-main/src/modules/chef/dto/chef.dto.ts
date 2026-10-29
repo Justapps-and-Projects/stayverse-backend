@@ -1,3 +1,4 @@
+import { ValidateIf } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsEnum, IsLatitude, IsLongitude, IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
@@ -10,10 +11,18 @@ export class CreateChefDto {
   @IsNotEmpty()
   fullName: string;
 
-  @ApiProperty({ example: "ChIJd8BlQ2BZwokRAFUEcm_qrcA" })
+  @ApiPropertyOptional({ description: 'Google Place ID; optional for a manual address' })
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() || undefined : value)
+  @IsOptional()
+  @IsString()
+  placeId?: string;
+
+  @ApiPropertyOptional({ description: 'Address entered by the agent; required without a Place ID' })
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+  @ValidateIf(o => o.address !== undefined || !o.placeId)
   @IsString()
   @IsNotEmpty()
-  placeId: string;
+  address?: string;
 
   @ApiProperty({ description: 'Short bio of the chef', example: 'Award-winning chef with 10 years of experience.' })
   @IsString()
@@ -50,6 +59,13 @@ export class CreateChefDto {
 }
 
 export class UpdateChefDto {
+  @ApiPropertyOptional({ description: 'Address entered by the agent' })
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+  @ValidateIf(o => o.address !== undefined)
+  @IsString()
+  @IsNotEmpty()
+  address?: string;
+
   @ApiPropertyOptional({ description: 'Full name of the chef', example: 'John Doe' })
   @IsString()
   @IsOptional()

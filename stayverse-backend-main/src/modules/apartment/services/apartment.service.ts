@@ -58,11 +58,10 @@ export class ApartmentService {
   }
 
   async create(createDto: CreateApartmentDto, agentId: string, images: string[]) {
-    const geo = await this.googleMapsService.reverseGeocode(createDto.placeId);
+    const listingAddress = await this.googleMapsService.resolveListingAddress(createDto);
     const apartment = new this.apartmentModel({
       ...createDto,
-      address: geo.formattedAddress,
-      location: { type: "Point", coordinates: [geo.coordinates.lng, geo.coordinates.lat] },
+      ...listingAddress,
       agentId: toObjectId(agentId),
       apartmentImages: images,
     });
@@ -218,6 +217,9 @@ export class ApartmentService {
 
   async update(id: string, updateApartmentDto: Partial<UpdateApartmentDto>, agentId: string) {
     const cleanedDto = stripEmptyFields(updateApartmentDto);
+    if (updateApartmentDto.address !== undefined || updateApartmentDto.placeId?.trim()) {
+      Object.assign(cleanedDto, await this.googleMapsService.resolveListingAddress(updateApartmentDto));
+    }
     const apartment = await this.apartmentModel.findOneAndUpdate(
       { _id: toObjectId(id), agentId: toObjectId(agentId), isDeleted: { $ne: true } },
       { $set: cleanedDto },

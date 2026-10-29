@@ -57,13 +57,12 @@ export class RidesService {
     }
 
     async create(createRideDto: CreateRideDto, agentId: string, rideImages: string[]): Promise<Ride> {
-        const geocodeData = await this.googleMapsService.reverseGeocode(createRideDto.placeId);
+        const listingAddress = await this.googleMapsService.resolveListingAddress(createRideDto);
         const ride = new this.rideModel({
             ...createRideDto,
-            address: geocodeData.formattedAddress,
-            location: { type: 'Point', coordinates: [geocodeData.coordinates.lng, geocodeData.coordinates.lat] },
+            ...listingAddress,
             agentId: toObjectId(agentId),
-            rideImages
+            rideImages,
         });
         return ride.save();
     }
@@ -249,6 +248,9 @@ export class RidesService {
     }
     async update(id: string, updateRideDto: UpdateRideDto, uploadedUrls: string[], agentId: string): Promise<Ride> {
         const cleanedDto = stripEmptyFields(updateRideDto);
+        if (updateRideDto.address !== undefined || updateRideDto.placeId?.trim()) {
+            Object.assign(cleanedDto, await this.googleMapsService.resolveListingAddress(updateRideDto));
+        }
         if (uploadedUrls && uploadedUrls.length > 0) {
             cleanedDto.rideImages = uploadedUrls;
         }

@@ -1,3 +1,4 @@
+import { ValidateIf } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
   IsString,
@@ -29,10 +30,18 @@ export class CreateRideDto {
   @IsNotEmpty()
   rideDescription: string;
 
-  @ApiProperty({ example: "ChIJd8BlQ2BZwokRAFUEcm_qrcA" })
+  @ApiPropertyOptional({ description: 'Google Place ID; optional for a manual address' })
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() || undefined : value)
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'please enter and slect your rides location' })
-  placeId: string;
+  placeId?: string;
+
+  @ApiPropertyOptional({ description: 'Address entered by the agent; required without a Place ID' })
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+  @ValidateIf(o => o.address !== undefined || !o.placeId)
+  @IsString()
+  @IsNotEmpty()
+  address?: string;
 
   @ApiProperty({ example: 'car' })
   rideType: string;
@@ -128,6 +137,13 @@ export class CreateRideDto {
 }
 
 export class UpdateRideDto {
+  @ApiPropertyOptional({ description: 'Address entered by the agent' })
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+  @ValidateIf(o => o.address !== undefined)
+  @IsString()
+  @IsNotEmpty()
+  address?: string;
+
   @ApiPropertyOptional({ example: "Toyota Camry" })
   @IsDefinedAndNotEmpty()
   @IsString()
