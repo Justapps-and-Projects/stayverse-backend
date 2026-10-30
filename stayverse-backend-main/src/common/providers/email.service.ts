@@ -10,12 +10,18 @@ const PLACEHOLDER_MAIL_VALUES = new Set([
     "your_mail_password",
 ]);
 
+export interface EmailSendResult {
+    success: boolean;
+    delivered: boolean;
+}
+
 @Injectable()
 export class EmailService implements OnModuleInit {
     private readonly logger = new Logger(EmailService.name);
     private readonly emailTimeoutMs: number;
     private mailConfigured = false;
     private brevoApiKey = "";
+    private resendApiKey = "";
     private logOtpFallback = false;
     private fromAddress = "";
 
@@ -34,6 +40,7 @@ export class EmailService implements OnModuleInit {
         const pass = this.configService.get<string>("mail.pass");
         const from = this.configService.get<string>("mail.from");
         this.brevoApiKey = this.configService.get<string>("mail.brevoApiKey") || "";
+        this.resendApiKey = this.configService.get<string>("mail.resendApiKey") || "";
         this.logOtpFallback = this.configService.get('mail.logOtpFallback') !== false
             && this.configService.get('mail.logOtpFallback') !== 'false';
         this.fromAddress = from || user || "no-reply@stayverse.com";
@@ -51,13 +58,18 @@ export class EmailService implements OnModuleInit {
             return;
         }
 
+        if (this.resendApiKey) {
+            this.logger.log("Resend HTTP mail transport enabled");
+            return;
+        }
+
         if (!this.mailConfigured) {
             this.logger.error(
-                "MAIL_HOST, MAIL_USER, and MAIL_PASS are missing or still set to placeholder values. Verification emails will not be delivered."
+                "No mail transport configured. Set BREVO_API_KEY, RESEND_API_KEY, or valid MAIL_HOST/MAIL_USER/MAIL_PASS."
             );
             if (this.logOtpFallback) {
                 this.logger.warn(
-                    "MAIL_LOG_OTP_FALLBACK=true: OTP emails will be logged server-side when SMTP is unavailable."
+                    "MAIL_LOG_OTP_FALLBACK=true: OTP emails will be logged server-side when mail is unavailable."
                 );
             }
             return;
@@ -68,9 +80,15 @@ export class EmailService implements OnModuleInit {
         );
     }
 
-    async sendEmail(to: string, subject: string, message: string) {
+    async sendEmail(to: string, subject: string, message: string): Promise<EmailSendResult> {
         if (this.brevoApiKey) {
-            return this.sendViaBrevo(to, subject, message);
+            const delivered = await this.sendViaBrevo(to, subject, message);
+            return { success: delivered, delivered };
+        }
+
+        if (this.resendApiKey) {
+            const delivered = await this.sendViaResend(to, subject, message);
+            return { success: delivered, delivered };
         }
 
         if (!this.mailConfigured) {
@@ -78,10 +96,10 @@ export class EmailService implements OnModuleInit {
                 this.logger.warn(
                     `[MAIL_LOG_OTP_FALLBACK] "${subject}" for ${to}. Body preview: ${this.extractOtpPreview(message)}`
                 );
-                return true;
+                return { success: true, delivered: false };
             }
             this.logger.error(`Skipped sending "${subject}" to ${to}: mail is not configured`);
-            return false;
+            return { success: false, delivered: false };
         }
 
         try {
@@ -101,10 +119,10 @@ export class EmailService implements OnModuleInit {
                 ),
             ]);
             this.logger.log(`Email sent to ${to}: ${subject}`);
-            return true;
+            return { success: true, delivered: true };
         } catch (error) {
             this.logger.error(`Failed to send email to ${to}: ${error.message}`, error.stack);
-            return false;
+            return { success: false, delivered: false };
         }
     }
 
@@ -135,6 +153,38 @@ export class EmailService implements OnModuleInit {
             return true;
         } catch (error) {
             this.logger.error(`Brevo send failed for ${to}: ${error.message}`, error.stack);
+            return false;
+        }
+    }
+
+    private async sendViaResend(to: string, subject: string, message: string): Promise<boolean> {
+        try {
+            const response = await fetch("https://api.resend.com/emails", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${this.resendApiKey}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    from: this.fromAddress.includes("@")
+                        ? `Stayverse <${this.fromAddress}>`
+                        : this.fromAddress,
+                    to: [to],
+                    subject,
+                    html: message,
+                }),
+            });
+
+            if (!response.ok) {
+                const body = await response.text();
+                this.logger.error(`Resend API failed (${response.status}): ${body}`);
+                return false;
+            }
+
+            this.logger.log(`Resend email sent to ${to}: ${subject}`);
+            return true;
+        } catch (error) {
+            this.logger.error(`Resend send failed for ${to}: ${error.message}`, error.stack);
             return false;
         }
     }

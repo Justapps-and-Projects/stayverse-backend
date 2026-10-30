@@ -56,6 +56,10 @@ export class User {
   @Exclude()
   otp?: string;
 
+  @Prop({ type: String, select: false })
+  @Exclude()
+  otpPurpose?: string;
+
   @Prop({ type: Date, select: false })
   @Exclude()
   pinExpires: Date;

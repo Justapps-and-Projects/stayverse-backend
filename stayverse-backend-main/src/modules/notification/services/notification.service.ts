@@ -116,8 +116,8 @@ export class NotificationService {
           return this.emailService.sendEmail(recipient.email, message.title, html);
         }),
       );
-      emailSentCount += results.filter(Boolean).length;
-      emailFailedCount += results.filter((sent) => !sent).length;
+      emailSentCount += results.filter((result) => result.success).length;
+      emailFailedCount += results.filter((result) => !result.success).length;
     }
 
     return { emailSentCount, emailFailedCount };

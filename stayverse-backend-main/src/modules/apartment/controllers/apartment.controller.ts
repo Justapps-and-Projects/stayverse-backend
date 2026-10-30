@@ -1,3 +1,4 @@
+import { ApartmentUploadPipe, MAX_APARTMENT_VIDEO_BYTES } from '../../../common/pipes/apartment-upload.pipe';
 import {
     Controller,
     Get,
@@ -48,7 +49,7 @@ export class ApartmentController {
 
     @Post()
     @ServiceTypeGuard(ServiceType.APARTMENT)
-    @UseInterceptors(FileFieldsInterceptor([{ name: 'apartmentImages', maxCount: 12 }]))
+    @UseInterceptors(FileFieldsInterceptor([{ name: 'apartmentImages', maxCount: 12 }, { name: 'apartmentVideo', maxCount: 1 }], { limits: { fileSize: MAX_APARTMENT_VIDEO_BYTES, files: 13 } }))
     @ApiBearerAuth()
     @ApiOperation({
         summary: 'Create a new apartment listing',
@@ -58,7 +59,7 @@ export class ApartmentController {
     async create(
         @Body() createApartmentDto: CreateApartmentDto,
         @Request() req,
-        @UploadedFiles(new FileUploadPipe()) files: Record<string, Express.Multer.File[]>
+        @UploadedFiles(new ApartmentUploadPipe()) files: Record<string, Express.Multer.File[]> & { videoDurationSeconds?: number }
     ) {
         const apartmentImages = files?.apartmentImages || [];
 
@@ -70,7 +71,10 @@ export class ApartmentController {
 
         const agentId = req.user.agent;
         const uploadedUrls = await this.uploadService.uploadFiles(apartmentImages, 'apartments');
-        return await this.apartmentService.create(createApartmentDto, agentId, uploadedUrls);
+        const videoUrls = files.apartmentVideo?.length
+            ? await this.uploadService.uploadFiles(files.apartmentVideo, 'apartments/videos') : [];
+        return await this.apartmentService.create(createApartmentDto, agentId, uploadedUrls,
+            videoUrls[0] ? { videoUrl: videoUrls[0], videoDurationSeconds: files.videoDurationSeconds } : undefined);
     }
 
     @Public()

@@ -22,12 +22,17 @@ export class CreateUserDto {
   @ApiProperty({ example: 'johndoe@example.com', required: false })
   @IsNotEmpty()
   @ValidateIf(o => o.email !== '')
+  @Transform(({ value }) => typeof value === "string" ? value.trim().toLowerCase() : value)
   @IsEmail()
   email: string;
 
   @ApiProperty({ example: '+2348123456789' })
   @IsPhoneNumber({ message: 'Phone number must be valid' })
   @Transform(({ value }) => {
+    // Validation must handle omitted/non-string input as a client error.  Passing
+    // it directly to libphonenumber can throw before Nest has a chance to return
+    // its normal 400 response.
+    if (typeof value !== 'string') return value;
     const phone = parsePhoneNumberFromString(value, 'NG');
     return phone ? phone.number : value;
   })
@@ -64,6 +69,7 @@ export class LoginUserDto extends PickType(CreateUserDto, ['email', 'password'] 
 }
 export class ForgotPasswordResetDto {
   @ApiProperty({ example: 'johndoe@example.com' })
+  @Transform(({ value }) => typeof value === "string" ? value.trim().toLowerCase() : value)
   @IsEmail()
   @IsNotEmpty()
   email: string;

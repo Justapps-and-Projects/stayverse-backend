@@ -57,13 +57,15 @@ export class ApartmentService {
     };
   }
 
-  async create(createDto: CreateApartmentDto, agentId: string, images: string[]) {
+  async create(createDto: CreateApartmentDto, agentId: string, images: string[], video?: { videoUrl: string; videoDurationSeconds?: number }) {
     const listingAddress = await this.googleMapsService.resolveListingAddress(createDto);
     const apartment = new this.apartmentModel({
       ...createDto,
       ...listingAddress,
       agentId: toObjectId(agentId),
       apartmentImages: images,
+      videoUrl: video?.videoUrl,
+      videoDurationSeconds: video?.videoDurationSeconds,
     });
     return apartment.save();
   }
@@ -99,7 +101,6 @@ export class ApartmentService {
     const radiusInRadians = radiusInMeters / 6378137; // Earth's radius in meters
 
     const filter = {
-      status: ServiceStatus.APPROVED,
       location: {
         $geoWithin: {
           $centerSphere: [[longitude, latitude], radiusInRadians],

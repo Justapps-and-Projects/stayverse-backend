@@ -66,6 +66,12 @@ export class Apartment {
     })
     apartmentImages: string[];
 
+    @Prop()
+    videoUrl?: string;
+
+    @Prop({ min: 0, max: 42 })
+    videoDurationSeconds?: number;
+
     @Prop({ type: String, enum: BookedStatus, default: BookedStatus.AVAILABLE })
     bookedStatus: BookedStatus;
 

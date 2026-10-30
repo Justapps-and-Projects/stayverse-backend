@@ -12,6 +12,7 @@ export type SocialIdentity = {
 
 /** Public OAuth client IDs already shipped in the mobile apps. */
 const GOOGLE_AUDIENCES = new Set([
+  '576811326554-msfgvqpar85mk5mit7u38e6iuhq96a5c.apps.googleusercontent.com',
   '576811326554-1b6ki3t03p7sdcl56gjbtgrcqips7sl7.apps.googleusercontent.com',
   '576811326554-t11hkabu4d5oog1vf8ce8renubj219qn.apps.googleusercontent.com',
   '576811326554-35i5lue66cvf3resib27b8ll15ejfg4o.apps.googleusercontent.com',
@@ -31,8 +32,13 @@ export async function verifySocialIdentity(
   provider: SocialProvider,
   idToken: string,
 ): Promise<SocialIdentity> {
-  if (provider === 'google') return verifyGoogle(idToken);
-  return verifyApple(idToken);
+  try {
+    if (provider === 'google') return await verifyGoogle(idToken);
+    if (provider === 'apple') return await verifyApple(idToken);
+    throw new UnauthorizedException('Unsupported sign-in provider');
+  } catch {
+    throw new UnauthorizedException('Social sign-in could not be verified. Please try again.');
+  }
 }
 
 async function verifyGoogle(idToken: string): Promise<SocialIdentity> {
@@ -64,6 +70,7 @@ async function verifyApple(idToken: string): Promise<SocialIdentity> {
 
   const header = decodePart(parts[0]);
   const payload = decodePart(parts[1]);
+  if (header.alg !== 'RS256') throw new UnauthorizedException('Apple authentication failed');
   const kid = String(header.kid ?? '');
   const { data } = await axios.get('https://appleid.apple.com/auth/keys', {
     timeout: 12_000,
@@ -88,7 +95,8 @@ async function verifyApple(idToken: string): Promise<SocialIdentity> {
     issuer !== 'https://appleid.apple.com' ||
     !APPLE_AUDIENCES.has(audience) ||
     !email ||
-    exp * 1000 < Date.now()
+    !(payload.email_verified === true || payload.email_verified === 'true') ||
+    !Number.isFinite(exp) || exp * 1000 <= Date.now()
   ) {
     throw new UnauthorizedException('Apple authentication failed');
   }

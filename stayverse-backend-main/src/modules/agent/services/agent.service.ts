@@ -1,3 +1,4 @@
+import { emailIdentity } from '../../../common/providers/email-identity';
 import {
   BadRequestException,
   Inject,
@@ -84,14 +85,16 @@ export class AgentService {
   async register(createAgentDto: CreateAgentDto) {
     const existingUser = await this.userModel.findOne({
       $or: [
-        { email: createAgentDto.email },
+        { email: emailIdentity(createAgentDto.email) },
         { phoneNumber: createAgentDto.phoneNumber },
       ],
     });
 
     if (existingUser)
       throw new BadRequestException(
-        'Agent with this email or phone number already exists',
+        existingUser.role === Roles.AGENT
+          ? 'An agent account already uses this email or phone. Sign in or reset your password.'
+          : 'This email or phone belongs to a customer account. Use different details for an agent account or contact support.',
       );
 
     const passwordHash = await bcrypt.hash(createAgentDto.password, 10);
@@ -99,7 +102,7 @@ export class AgentService {
     const newUser = new this.userModel({
       firstname: createAgentDto.firstname,
       lastname: createAgentDto.lastname,
-      email: createAgentDto.email,
+      email: createAgentDto.email.trim().toLowerCase(),
       phoneNumber: createAgentDto.phoneNumber,
       passwordHash,
       role: Roles.AGENT,
@@ -111,7 +114,12 @@ export class AgentService {
       userId: newUser._id,
       serviceType: createAgentDto.serviceType,
     });
-    await newAgent.save();
+    try {
+      await newAgent.save();
+    } catch (error) {
+      await this.userModel.deleteOne({ _id: newUser._id });
+      throw error;
+    }
     const chatToken = this.streamClient.createToken(newAgent._id.toString())
 
     const response = await this.otpService.sendEmailMessage(
@@ -119,7 +127,7 @@ export class AgentService {
       createAgentDto.firstname,
       EmailType.EMAIL_VERIFICATION,
     );
-    if (!response.status) {
+    if (!response.status || !response.emailDelivered) {
       await this.agentModel.deleteOne({ _id: newAgent._id });
       await this.userModel.deleteOne({ _id: newUser._id });
       throw new InternalServerErrorException(
@@ -128,6 +136,7 @@ export class AgentService {
     }
 
     newUser.otp = response.otp;
+    newUser.otpPurpose = EmailType.EMAIL_VERIFICATION;
     newUser.pinExpires = dayjs().tz(TIMEZONE).add(OTP_MINUTES, 'minute').toDate();
     await newUser.save();
 
@@ -151,7 +160,7 @@ export class AgentService {
   }
 
   async login(email: string, password: string) {
-    const user = (await this.userModel.findOne({ email, role: Roles.AGENT }).select('+passwordHash +balance +notificationsEnabled')) as UserDocument;
+    const user = (await this.userModel.findOne({ email: emailIdentity(email), role: Roles.AGENT }).select('+passwordHash +balance +notificationsEnabled')) as UserDocument;
 
     if (!user) throw new BadRequestException('Agent not found!');
 
@@ -169,10 +178,14 @@ export class AgentService {
         user.firstname,
         EmailType.EMAIL_VERIFICATION,
       );
-      if (response.status) {
+      if (response.status && response.emailDelivered) {
         user.otp = response.otp;
+        user.otpPurpose = EmailType.EMAIL_VERIFICATION;
         user.pinExpires = dayjs().tz(TIMEZONE).add(OTP_MINUTES, 'minute').toDate();
         await user.save();
+      }
+      if (!response.status || !response.emailDelivered) {
+        throw new InternalServerErrorException('Unable to send verification email. Please try again later.');
       }
       return {
         access_token: null,
@@ -206,7 +219,7 @@ export class AgentService {
   async loginWithSocial(dto: SocialLoginDto) {
     const identity = await verifySocialIdentity(dto.provider, dto.idToken);
     const user = (await this.userModel
-      .findOne({ email: identity.email, role: Roles.AGENT })
+      .findOne({ email: emailIdentity(identity.email), role: Roles.AGENT })
       .select('+passwordHash +balance +notificationsEnabled')) as UserDocument;
 
     if (!user) {
@@ -243,18 +256,19 @@ export class AgentService {
   }
 
   async verifyEmailToken(email: string, otp: string) {
-    const user = await this.userModel.findOne({ email, role: Roles.AGENT }).select('+otp +pinExpires');
+    const user = await this.userModel.findOne({ email: emailIdentity(email), role: Roles.AGENT }).select('+otp +pinExpires +otpPurpose');
 
     if (!user)
       throw new BadRequestException('Agent with this email not found!');
     if (user.isEmailVerified)
       throw new BadRequestException('Agent is already verified.');
-    if (user.otp !== otp) throw new BadRequestException('Invalid OTP!');
+    if (user.otpPurpose !== EmailType.EMAIL_VERIFICATION || user.otp !== otp) throw new BadRequestException('Invalid OTP!');
     if (!user.pinExpires || user.pinExpires < new Date())
       throw new BadRequestException('OTP has expired!');
 
     user.isEmailVerified = true;
     user.otp = null;
+    user.otpPurpose = null;
     user.pinExpires = null;
     await user.save();
 
@@ -267,7 +281,7 @@ export class AgentService {
   }
 
   async forgotPassword(email: string) {
-    const user = await this.userModel.findOne({ email, role: Roles.AGENT }).select('+otp +pinExpires');
+    const user = await this.userModel.findOne({ email: emailIdentity(email), role: Roles.AGENT }).select('+otp +pinExpires +otpPurpose');
 
     if (!user) throw new BadRequestException('Agent not found!');
 
@@ -277,13 +291,14 @@ export class AgentService {
       EmailType.RESET_PASSWORD,
     );
 
-    if (!response.status) {
+    if (!response.status || !response.emailDelivered) {
       throw new InternalServerErrorException(
         'Failed to send password reset email. Please try again later.',
       );
     }
 
     user.otp = response.otp;
+    user.otpPurpose = EmailType.RESET_PASSWORD;
     user.pinExpires = dayjs().tz(TIMEZONE).add(10, 'minute').toDate();
     await user.save();
 
@@ -294,11 +309,11 @@ export class AgentService {
   async resetForgottenPassword(props: ResetPasswordProps) {
     const { email, otp, password } = props;
 
-    const user = await this.userModel.findOne({ email, role: Roles.AGENT }).select('+passwordHash +otp +pinExpires');
+    const user = await this.userModel.findOne({ email: emailIdentity(email), role: Roles.AGENT }).select('+passwordHash +otp +pinExpires +otpPurpose');
 
     if (!user) throw new BadRequestException('Agent not found!');
 
-    if (user.otp !== otp || user.pinExpires < new Date()) {
+    if (user.otpPurpose !== EmailType.RESET_PASSWORD || !user.otp || user.otp !== otp || !user.pinExpires || user.pinExpires <= new Date()) {
       throw new BadRequestException('Invalid or expired OTP');
     }
 
@@ -306,6 +321,7 @@ export class AgentService {
 
     user.passwordHash = passwordHash;
     user.otp = null;
+    user.otpPurpose = null;
     user.pinExpires = null;
 
     await user.save();
@@ -314,7 +330,7 @@ export class AgentService {
   }
 
   async resendVerificationPin(email: string) {
-    const user = await this.userModel.findOne({ email, role: Roles.AGENT }).select('+otp +pinExpires');
+    const user = await this.userModel.findOne({ email: emailIdentity(email), role: Roles.AGENT }).select('+otp +pinExpires +otpPurpose');
 
     if (!user)
       throw new BadRequestException('Agent with this email not found!');
@@ -328,8 +344,9 @@ export class AgentService {
       EmailType.EMAIL_VERIFICATION,
     );
 
-    if (response.status) {
+    if (response.status && response.emailDelivered) {
       user.otp = response.otp;
+      user.otpPurpose = EmailType.EMAIL_VERIFICATION;
       user.pinExpires = dayjs().tz(TIMEZONE).add(OTP_MINUTES, 'minute').toDate();
       await user.save();
       return {

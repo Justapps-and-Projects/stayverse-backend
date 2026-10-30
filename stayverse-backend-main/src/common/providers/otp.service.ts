@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import { Injectable, Logger } from "@nestjs/common";
 import { EmailService } from "./email.service";
 import { otpEmailTemplate } from "./template/otp-email.template";
@@ -8,6 +9,7 @@ import { ConfigService } from "@nestjs/config";
 interface EmailResponse {
     status: boolean;
     otp?: string;
+    emailDelivered?: boolean;
 }
 
 @Injectable()
@@ -21,9 +23,9 @@ export class OtpService {
             this.logger.warn(
                 `Email delivery failed for ${email}; continuing with generated OTP for verification.`,
             );
-            return { status: true, otp };
+            return { status: true, otp, emailDelivered: false };
         }
-        return { status: false };
+        return { status: false, emailDelivered: false };
     }
 
     async sendEmailMessage(email: string, name: string, type: EmailType): Promise<EmailResponse> {
@@ -32,11 +34,11 @@ export class OtpService {
         let otp: string | undefined = undefined;
         const baseurl = this.configService.get<string>('app.base_url');
         if (type === EmailType.EMAIL_VERIFICATION) {
-            otp = Math.floor(100000 + Math.random() * 900000).toString();
+            otp = randomInt(100000, 1000000).toString();
             subject = "Email Confirmation";
             message = otpEmailTemplate(name, otp, 'verification', baseurl);
         } else if (type === EmailType.RESET_PASSWORD) {
-            otp = Math.floor(100000 + Math.random() * 900000).toString();
+            otp = randomInt(100000, 1000000).toString();
             subject = "Password Reset OTP";
             message = otpEmailTemplate(name, otp, 'reset', baseurl);
         } else {
@@ -45,15 +47,19 @@ export class OtpService {
         }
 
         try {
-            const response = await this.emailService.sendEmail(email, subject, message);
-            if (!response) {
+            const result = await this.emailService.sendEmail(email, subject, message);
+            if (!result.success) {
                 const fallback = this.completeWithFallback(email, otp);
                 if (!fallback.status) {
                     this.logger.warn(`Failed to send ${type} email to ${email}`);
                 }
                 return fallback;
             }
-            return { status: true, otp };
+            return {
+                status: true,
+                otp,
+                emailDelivered: result.delivered,
+            };
         } catch (error) {
             this.logger.error(`Error sending ${type} email to ${email}: ${error.message}`);
             return this.completeWithFallback(email, otp);

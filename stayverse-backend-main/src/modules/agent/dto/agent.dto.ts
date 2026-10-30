@@ -1,5 +1,6 @@
+import { Transform } from "class-transformer";
 import { ApiProperty, PickType } from "@nestjs/swagger";
-import { IsEnum, IsEmail, IsNotEmpty, IsString, MinLength, IsOptional, isEnum } from "class-validator";
+import { IsEnum, IsEmail, IsNotEmpty, IsString, MinLength, Matches, IsOptional, isEnum } from "class-validator";
 import { CreateUserDto } from "../../user/dto/user.dto"
 import { ServiceType } from "src/common/constants/enum";
 
@@ -20,6 +21,7 @@ export class LoginAgentDto extends PickType(CreateUserDto, ['email', 'password']
 
 export class ForgotPasswordResetDto {
     @ApiProperty({ example: 'johndoe@example.com' })
+    @Transform(({ value }) => typeof value === "string" ? value.trim().toLowerCase() : value)
     @IsEmail()
     @IsNotEmpty()
     email: string;
@@ -27,10 +29,12 @@ export class ForgotPasswordResetDto {
     @ApiProperty({ example: 'NewStrongPassword123!' })
     @IsString()
     @IsNotEmpty()
+    @MinLength(6)
     password: string;
 
     @ApiProperty({ example: '123456' })
     @IsString()
     @IsNotEmpty()
+    @Matches(/^\d{6}$/)
     otp: string;
 }
