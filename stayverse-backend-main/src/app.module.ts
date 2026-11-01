@@ -51,7 +51,7 @@ import { ScheduleModule } from '@nestjs/schedule';
       }),
       inject: [ConfigService]
     }),
-    ScheduleModule.forRoot(),
+    ScheduleModule.forRoot({ cronJobs: process.env.ENABLE_SCHEDULED_JOBS !== 'false' }),
     ProviderModule,
     UserModule,
     FavoriteModule,
