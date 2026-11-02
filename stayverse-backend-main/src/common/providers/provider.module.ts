@@ -1,3 +1,4 @@
+import { StorageHealthController } from './storage-health.controller';
 import { Module } from "@nestjs/common";
 import { MailerModule } from "@nestjs-modules/mailer";
 import { ConfigModule, ConfigService } from "@nestjs/config";
@@ -38,6 +39,7 @@ import { DOUploadService } from "./digiital-ocean.service";
       },
     }),
   ],
+  controllers: [StorageHealthController],
   providers: [EmailService, OtpService,GoogleMapsService,DojahService,FirebaseService,DOUploadService],
   exports: [EmailService, OtpService,GoogleMapsService,DojahService,FirebaseService,DOUploadService],
 })

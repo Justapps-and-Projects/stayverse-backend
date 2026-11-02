@@ -1,10 +1,13 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { S3 } from 'aws-sdk';
+import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
-export class DOUploadService {
+export class DOUploadService implements OnModuleInit {
+  private readonly logger = new Logger(DOUploadService.name);
+  private storageCheck: { provider: string; status: string; stage?: string; checkedAt?: string } = { provider: 'digitalocean', status: 'not_checked' };
   private s3: S3;
   private bucketName: string;
   private region: string;
@@ -17,6 +20,7 @@ export class DOUploadService {
       throw new Error('Unsupported STORAGE_PROVIDER');
     }
     this.useSupabase = provider === 'supabase';
+    this.storageCheck = { provider, status: this.useSupabase ? 'pending' : 'not_enabled' };
     if (this.useSupabase) {
       const required = (key: string) => {
         const value = this.configService.get<string>(`storage.${key}`)?.trim();
@@ -51,6 +55,40 @@ export class DOUploadService {
         signatureVersion: 'v4',
       });
     }
+  }
+
+  getStorageCheck() {
+    return { ...this.storageCheck };
+  }
+
+  async onModuleInit() {
+    if (!this.useSupabase) return;
+    const key = `health-checks/${uuidv4()}.png`;
+    const image = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aHHsAAAAASUVORK5CYII=', 'base64');
+    let stage = 'upload';
+    let failure: string | undefined;
+    // Run once per process start. The public health endpoint only reports the cached result.
+    const bounded = async (request: any) => {
+      const timer = setTimeout(() => request.abort(), 20000);
+      try { return await request.promise(); } finally { clearTimeout(timer); }
+    };
+    try {
+      await bounded(this.s3.putObject({ Bucket: this.bucketName, Key: key, Body: image, ContentType: 'image/png' }));
+      stage = 'public_read';
+      const response = await axios.get(`${this.cdnUrl}/${key}`, {
+        responseType: 'arraybuffer', timeout: 15000, maxRedirects: 0, maxContentLength: 1024 * 1024,
+      });
+      if (!Buffer.from(response.data).equals(image)) throw new Error('Storage read mismatch');
+    } catch {
+      failure = stage;
+    } finally {
+      // Delete only this process's generated test object, even after an uncertain upload result.
+      try { await bounded(this.s3.deleteObject({ Bucket: this.bucketName, Key: key })); }
+      catch { failure = failure || 'cleanup'; }
+    }
+    this.storageCheck = { provider: 'supabase', status: failure ? 'failed' : 'ok', stage: failure || 'complete', checkedAt: new Date().toISOString() };
+    if (failure) this.logger.warn(`Supabase storage check failed at ${failure}; see /health/storage`);
+    else this.logger.log('Supabase storage upload, public read and cleanup verified');
   }
 
   async uploadFiles(files: Express.Multer.File[], folder: string): Promise<string[]> {
