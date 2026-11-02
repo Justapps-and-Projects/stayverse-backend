@@ -48,6 +48,15 @@ export default () => ({
     publicKey: process.env.DOJAH_PUBLIC_KEY || "your_dojah_public_key",
     baseUrl: process.env.DOJAH_BASE_URL || "https://api.dojah.io",
   },
+  storage: {
+    provider: process.env.STORAGE_PROVIDER || 'digitalocean',
+    supabaseUrl: process.env.SUPABASE_URL || '',
+    s3Endpoint: process.env.SUPABASE_S3_ENDPOINT || '',
+    region: process.env.SUPABASE_S3_REGION || '',
+    bucket: process.env.SUPABASE_STORAGE_BUCKET || 'stayverse-media',
+    accessKeyId: process.env.SUPABASE_S3_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.SUPABASE_S3_SECRET_ACCESS_KEY || '',
+  },
   do: {
     region: process.env.DO_REGION || "nyc3",
     bucket: process.env.DO_BUCKET || "your_do_bucket",
