@@ -127,7 +127,10 @@ export class AgentService {
       createAgentDto.firstname,
       EmailType.EMAIL_VERIFICATION,
     );
-    if (!response.status || !response.emailDelivered) {
+    // A delivery outage must not discard an account that was created safely.
+    // OtpService supplies a short-lived fallback OTP for the client when email
+    // delivery is unavailable, matching the user-account registration flow.
+    if (!response.status) {
       await this.agentModel.deleteOne({ _id: newAgent._id });
       await this.userModel.deleteOne({ _id: newUser._id });
       throw new InternalServerErrorException(
@@ -178,14 +181,11 @@ export class AgentService {
         user.firstname,
         EmailType.EMAIL_VERIFICATION,
       );
-      if (response.status && response.emailDelivered) {
+      if (response.status) {
         user.otp = response.otp;
         user.otpPurpose = EmailType.EMAIL_VERIFICATION;
         user.pinExpires = dayjs().tz(TIMEZONE).add(OTP_MINUTES, 'minute').toDate();
         await user.save();
-      }
-      if (!response.status || !response.emailDelivered) {
-        throw new InternalServerErrorException('Unable to send verification email. Please try again later.');
       }
       return {
         access_token: null,
@@ -344,7 +344,7 @@ export class AgentService {
       EmailType.EMAIL_VERIFICATION,
     );
 
-    if (response.status && response.emailDelivered) {
+    if (response.status) {
       user.otp = response.otp;
       user.otpPurpose = EmailType.EMAIL_VERIFICATION;
       user.pinExpires = dayjs().tz(TIMEZONE).add(OTP_MINUTES, 'minute').toDate();
