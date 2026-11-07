@@ -16,6 +16,11 @@ describe('Listing address resolution', () => {
       .resolves.toEqual({ address: '12 Example Road, Lagos', placeId: null, location: null });
     expect(geocode).not.toHaveBeenCalled();
   });
+  it('accepts the typed apartment address used by the agent listing flow', async () => {
+    await expect(service.resolveListingAddress({ address: 'Asokoro, Abuja' }))
+      .resolves.toEqual({ address: 'Asokoro, Abuja', placeId: null, location: null });
+    expect(geocode).not.toHaveBeenCalled();
+  });
   it('rejects an empty address when no place is selected', async () => {
     await expect(service.resolveListingAddress({ address: '  ', placeId: '' })).rejects.toThrow();
   });
